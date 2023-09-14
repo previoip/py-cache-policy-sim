@@ -1,4 +1,5 @@
 import logging
+import os
 
 __LOG_FMT_STR = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 __LOG_FMT = logging.Formatter(__LOG_FMT_STR)
@@ -12,9 +13,14 @@ def set_fmt(logger: logging.Logger):
     isinstance(handler, logging.FileHandler):
       handler.setFormatter(__LOG_FMT)
 
-def spawn_logger(name, log_path=None, level=logging.INFO) -> logging.Logger:
+def spawn_logger(name, log_path=None, level=logging.DEBUG) -> logging.Logger:
   logger = logging.getLogger(name)
   logger.setLevel(level)
+
+  dirname = os.path.dirname(log_path)
+  if not os.path.exists(dirname):
+    os.makedirs(dirname)
+  
   if not logger.hasHandlers():
     if log_path is None:
       ch = logging.StreamHandler()

@@ -4,17 +4,23 @@ from dataclasses import dataclass
 from collections import OrderedDict
 from collections.abc import Mapping
 from threading import RLock
+from src.trace import trace_fn
+from src.logger_helper import spawn_logger
+
 
 T_TTL = t.Union[int, float]
+
+_logger = spawn_logger(__name__, f'log/{__name__}.log')
 
 @dataclass
 class CacheRecord:
   ttl: T_TTL
-  sizeof: int
+  size: int
   value: t.Any
 
+  @trace_fn(_logger)
   def __iter__(self):
-    return iter((self.ttl, self.val))
+    return iter((self.ttl, self.size, self.value))
 
 
 class Cache:
@@ -22,6 +28,7 @@ class Cache:
   _lock: RLock
   _timer: t.Callable
 
+  @trace_fn(_logger)
   def __init__(
     self,
     maxsize: t.Optional[int] = 1024,
@@ -51,19 +58,19 @@ class Cache:
     self.maxsize = maxsize
     self.maxage = maxage
 
+  @trace_fn(_logger)
   def __repr__(self):
     return f'<{self.__class__.__name__}>'
 
-  def __len__(self):
-    with self._lock:
-      return len(self._cache)
-
+  @trace_fn(_logger)
   def __contains__(self, key):
     return self._has(key)
 
+  @trace_fn(_logger)
   def __iter__(self):
     yield from self.keys()
 
+  @trace_fn(_logger)
   def __next__(self) -> t.Hashable:
     return next(iter(self._cache))
 
@@ -87,8 +94,23 @@ class Cache:
       raise ValueError
     self._maxage = o
 
+  @property
+  def usage(self):
+    with self._lock:
+      sums = 0
+      for _, s, _ in self._cache.values():
+        sums += s
+      return sums
+
+  @property
+  def is_full(self):
+    if self.maxsize <= 0 or self.maxsize is None:
+      return False
+    return self.usage >= self.maxsize 
+
   def copy(self):
-    return self._cache.copy()
+    with self._lock:
+      return self._cache.copy()
 
   def keys(self):
     return self.copy().keys()
@@ -103,6 +125,7 @@ class Cache:
     with self._lock:
       self._clear()
 
+  @trace_fn(_logger)
   def _clear(self):
     self._cache.clear()
 
@@ -110,6 +133,7 @@ class Cache:
     with self._lock:
       self._has(key)
 
+  @trace_fn(_logger)
   def _has(self, key):
     self._get(key, default=None) is not None
 
@@ -117,26 +141,33 @@ class Cache:
     with self._lock:
       return self._get(key, default=default)
 
+  @trace_fn(_logger)
   def _get(self, key, default=None):
     try:
       val = self._cache[key]
-      if self.is_expired(key):
+      if self.has_expired(key):
         self.delete(key)
         raise KeyError
     except KeyError:
       return None
     return val
 
-  def add(self, key: t.Hashable, value: t.Any, sizeof: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+  def add(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
     with self._lock:
-      self._add(self, key, value, sizeof=sizeof, ttl=ttl)
+      self._add(key, value, size=size, ttl=ttl)
 
-  def _add(self, key: t.Hashable, value: t.Any, sizeof: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+  @trace_fn(_logger)
+  def _add(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
     if self._has(key):
       return
-    self._set(self, key, value, sizeof=sizeof, ttl=ttl)
+    self._set(key, value, size=size, ttl=ttl)
 
-  def set(self, key: t.Hashable, value: t.Any, sizeof: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+  def set(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+    with self._lock:
+      self._set(key, value, size=size, ttl=ttl)
+
+  @trace_fn(_logger)
+  def _set(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
     if ttl is None:
       ttl = self._maxage
 
@@ -147,17 +178,52 @@ class Cache:
       self.evict()
 
     self._delete(key)
-    self._cache[key] = CacheRecord(ttl, sizeof, value)
-
+    self._cache[key] = CacheRecord(ttl, size, value)
 
   def delete(self, key: t.Hashable):
-      ...
+    with self._lock:
+      self._delete(key)
+
+  @trace_fn(_logger)
+  def _delete(self, key: t.Hashable):
+    try:
+      del self._cache[key]
+    except KeyError:
+      pass
+
+  def delete_expired(self):
+    with self._lock:
+      self._delete_expired()
+
+  @trace_fn(_logger)
+  def _delete_expired(self):
+    timestamp = self._timer()
+    for key, (ttl, _, _) in self._cache.items():
+      if ttl <= timestamp:
+        self._delete(key)
+
+  def has_expired(self, key: t.Hashable):
+    with self._lock:
+      self._has_expired(key)
+
+  @trace_fn(_logger)
+  def _has_expired(self, key: t.Hashable):
+    timestamp = self._timer()
+    cache_record = self._cache[key]
+    return cache_record.ttl <= timestamp
 
   def evict(self):
-    ...
-  
-  def pop(self):
-    ...
+    self.delete_expired()
 
-  def is_expired(self, key: t.Hashable):
-    ...
+  def pop(self, key: t.Optional[t.Hashable] = None):
+    with self._lock:
+      self._delete_expired()
+      return self._pop(key)
+
+  @trace_fn(_logger)
+  def _pop(self, key: t.Optional[t.Hashable] = None):
+    if key is None:
+      key = next(self)
+    key, (_, _, value) = self._cache[key]
+    self._delete(key)
+    return (key, value)
