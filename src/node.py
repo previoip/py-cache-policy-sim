@@ -17,7 +17,7 @@ class Node:
     assert o is None or isinstance(o, self.__class__), f'arg is not instance of {self.__class__}'
 
   def __repr__(self):
-    return f'<Node {self.name}>'
+    return f'<{self.__class__.__name__} {self.name}>'
 
   def __init__(self, name=None, parent=None):
     self.name = str(id(self)) if name is None else name
@@ -47,7 +47,7 @@ class Node:
 
   @property
   def children(self):
-    return list(self._iter_children)
+    return list(self._iter_children())
 
   @property
   def degree(self):
@@ -55,46 +55,53 @@ class Node:
 
   @property
   def depth(self):
-    return sum(map(lambda _: 1, self._iter_parents))
+    return sum(map(lambda _: 1, self._iter_parents()))
 
-  @property
   def is_root(self):
     return self.parent is None
 
-  @property
   def is_leaf(self):
     return self.degree == 0
 
-  @property
   def is_internal(self):
-    return self.is_leaf and not self.is_root
+    return self.is_leaf() and not self.is_root()
 
-  @property
-  def _iter_edges(self):
+  def _iter_edges(self) -> t.Generator:
     yield from self._edges
 
-  @property
-  def _iter_parents(self):
+  def _iter_parents(self) -> t.Generator:
     p = self.parent
     while not p is None:
       yield p
       p = p.parent
 
-  @property
-  def _iter_siblings(self):
+  def _iter_siblings(self) -> t.Generator:
     if self.parent is None:
       return
-    for ch in self.parent._iter_children:
+    for ch in self.parent._iter_children():
       if ch == self:
         continue
       yield ch
 
-  @property 
-  def _iter_children(self):
+  def _iter_children(self) -> t.Generator:
     for n, edge in enumerate(self._edges):
       if n == self._parent_index:
         continue
       yield edge.b
+
+  def _recurse_nodes(self) -> t.Generator:
+    yield self
+    for ch in self._iter_children():
+      yield ch
+      if ch.degree > 0:
+        yield ch._recurse_nodes()
+
+  def recurse_nodes(self) -> t.Generator:
+    yield from self._recurse_nodes()
+
+  def recurse_callback(self, callback: t.Callable, *args, **kwargs) -> t.Generator:
+    for node in self._recurse_nodes():
+      yield callback(node, *args, **kwargs)
 
   def get_edge_index_by_ref(self, o):
     self._assert_type(o)
@@ -104,7 +111,7 @@ class Node:
     return None
 
   def get_child_index_by_attr(self, value, attr):
-    for n, ch in enumerate(self._iter_children):
+    for n, ch in enumerate(self._iter_children()):
       if getattr(ch, attr) == value:
         return n
     return None
@@ -115,13 +122,18 @@ class Node:
   def get_child_by_name(self, name):
     i = self.get_child_index_by_name(name)
     if i is None:
-      return None
+      return
     return self.children[i]
+
+  def spawn_child(self, name):
+    return self.__class__(name=name, parent=self)
 
   def append_child(self, child):
     self._assert_type(child)
+    if not self.get_child_by_name(child.name) is None:
+      raise ValueError(f'child {child} name already exists in parent children')
     if child in self.children:
-      return
+      raise ValueError(f'child {child} already exists in parent children')
     edge = Edge(self, child)
     self._edges.append(edge)
 
@@ -131,5 +143,4 @@ class Node:
       return
     edge = self._edges.pop(i)
     ret = edge.b
-    del edge
     return ret

@@ -9,6 +9,7 @@ from src.logger_helper import spawn_logger
 
 
 T_TTL = t.Union[int, float]
+T_SIZE = int
 
 _logger = spawn_logger(__name__, f'log/{__name__}.log')
 
@@ -18,7 +19,7 @@ class CacheRecord:
   size: int
   value: t.Any
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def __iter__(self):
     return iter((self.ttl, self.size, self.value))
 
@@ -28,10 +29,10 @@ class Cache:
   _lock: RLock
   _timer: t.Callable
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def __init__(
     self,
-    maxsize: t.Optional[int] = 1024,
+    maxsize: t.Optional[T_SIZE] = 1024,
     maxage: t.Optional[T_TTL] = 0,
     timer: t.Optional[t.Callable] = time.time
   ):
@@ -50,7 +51,7 @@ class Cache:
 
   def configure(
     self,
-    maxsize: int = 1024,
+    maxsize: T_SIZE = 1024,
     maxage: T_TTL = 0,
     timer: t.Optional[t.Callable] = time.time
   ):
@@ -58,19 +59,19 @@ class Cache:
     self.maxsize = maxsize
     self.maxage = maxage
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def __repr__(self):
     return f'<{self.__class__.__name__}>'
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def __contains__(self, key):
     return self._has(key)
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def __iter__(self):
     yield from self.keys()
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def __next__(self) -> t.Hashable:
     return next(iter(self._cache))
 
@@ -125,7 +126,7 @@ class Cache:
     with self._lock:
       self._clear()
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def _clear(self):
     self._cache.clear()
 
@@ -133,7 +134,7 @@ class Cache:
     with self._lock:
       self._has(key)
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def _has(self, key):
     self._get(key, default=None) is not None
 
@@ -141,7 +142,7 @@ class Cache:
     with self._lock:
       return self._get(key, default=default)
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def _get(self, key, default=None):
     try:
       val = self._cache[key]
@@ -152,22 +153,22 @@ class Cache:
       return None
     return val
 
-  def add(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+  def add(self, key: t.Hashable, value: t.Any, size: t.Optional[T_SIZE] = 1, ttl: t.Optional[T_TTL] = None):
     with self._lock:
       self._add(key, value, size=size, ttl=ttl)
 
-  @trace_fn(_logger)
-  def _add(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+  # @trace_fn(_logger)
+  def _add(self, key: t.Hashable, value: t.Any, size: t.Optional[T_SIZE] = 1, ttl: t.Optional[T_TTL] = None):
     if self._has(key):
       return
     self._set(key, value, size=size, ttl=ttl)
 
-  def set(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+  def set(self, key: t.Hashable, value: t.Any, size: t.Optional[T_SIZE] = 1, ttl: t.Optional[T_TTL] = None):
     with self._lock:
       self._set(key, value, size=size, ttl=ttl)
 
-  @trace_fn(_logger)
-  def _set(self, key: t.Hashable, value: t.Any, size: t.Optional[int] = 1, ttl: t.Optional[T_TTL] = None):
+  # @trace_fn(_logger)
+  def _set(self, key: t.Hashable, value: t.Any, size: t.Optional[T_SIZE] = 1, ttl: t.Optional[T_TTL] = None):
     if ttl is None:
       ttl = self._maxage
 
@@ -184,7 +185,7 @@ class Cache:
     with self._lock:
       self._delete(key)
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def _delete(self, key: t.Hashable):
     try:
       del self._cache[key]
@@ -195,7 +196,7 @@ class Cache:
     with self._lock:
       self._delete_expired()
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def _delete_expired(self):
     timestamp = self._timer()
     for key, (ttl, _, _) in self._cache.items():
@@ -206,7 +207,7 @@ class Cache:
     with self._lock:
       self._has_expired(key)
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def _has_expired(self, key: t.Hashable):
     timestamp = self._timer()
     cache_record = self._cache[key]
@@ -220,7 +221,7 @@ class Cache:
       self._delete_expired()
       return self._pop(key)
 
-  @trace_fn(_logger)
+  # @trace_fn(_logger)
   def _pop(self, key: t.Optional[t.Hashable] = None):
     if key is None:
       key = next(self)
