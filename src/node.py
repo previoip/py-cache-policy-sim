@@ -3,12 +3,16 @@ import typing as t
 class Edge:
 
   def __repr__(self):
-    return f'<Edge [{self.a} --> {self.b}]>'
+    return f'Edge [{self.a} --> {self.b}]'
 
   def __init__(self, a, b, attr=None):
     self.a = a
     self.b = b
     self.attr = attr
+
+  def graph_repr(self):
+    # mermaid diagram node repr
+    return f'{id(self.a)}[{self.a}] --> {id(self.b)}[{self.b}]'
 
 
 class Node:
@@ -17,7 +21,7 @@ class Node:
     assert o is None or isinstance(o, self.__class__), f'arg is not instance of {self.__class__}'
 
   def __repr__(self):
-    return f'<{self.__class__.__name__} {self.name}>'
+    return f'{self.__class__.__name__} {self.name}'
 
   def __init__(self, name=None, parent=None):
     self.name = str(id(self)) if name is None else name
@@ -102,6 +106,11 @@ class Node:
   def recurse_callback(self, callback: t.Callable, *args, **kwargs) -> t.Generator:
     for node in self._recurse_nodes():
       yield callback(node, *args, **kwargs)
+
+  def recurse_edges(self) -> t.Generator:
+    for node in self._recurse_nodes():
+      for edge in node._iter_edges():
+        yield edge
 
   def get_edge_index_by_ref(self, o):
     self._assert_type(o)

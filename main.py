@@ -41,8 +41,13 @@ if __name__ == '__main__':
   base_server.setup()
 
   for n in range(sim_conf['network_conf']['n_edge']):
-    edge_server = base_server.spawn_child(f'edge_server')
+    edge_server = base_server.spawn_child(f'edge_server_{n}')
     edge_server.setup()
 
-  for _ in base_server.recurse_callback(lambda node: print(node)):
+  for _ in base_server.recurse_callback(lambda node: print(node._edges)):
     pass
+
+  print()
+
+  for edge in base_server.recurse_edges():
+    print(edge.graph_repr())
