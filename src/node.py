@@ -98,7 +98,7 @@ class Node:
     for ch in self._iter_children():
       yield ch
       if ch.degree > 0:
-        yield ch._recurse_nodes()
+        yield from ch._recurse_nodes()
 
   def recurse_nodes(self) -> t.Generator:
     yield from self._recurse_nodes()
