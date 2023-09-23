@@ -1,24 +1,86 @@
 import typing as t
+from collections import namedtuple
+from dataclasses import dataclass
+
+
+def _g_check_type(self, o):
+  if not isinstance(o, self.__class__): 
+    raise ValueError(f'{o.__class__} is not instance of {self.__class__}')
+
+@dataclass
+class EdgeStates:
+  passed: bool = False
+
+@dataclass
+class EdgeAttrs:
+  weight = 1
+  length = 0
 
 class Edge:
+  _check_type = _g_check_type
 
-  def __repr__(self):
-    return f'Edge [{self.a} --> {self.b}]'
+  _attrs_prototype = EdgeAttrs
+  _states_prototype = EdgeStates
+
+  def __repr__(self) -> str:
+    return f'Edge [{self.a} -- {self.b}]'
 
   def __init__(self, a, b, attr=None):
-    self.a = a
-    self.b = b
-    self.attr = attr
+    self._a = a
+    self._b = b
+    self._attrs = self._attrs_prototype()
+    self._states = self._states_prototype()
+    self._mirror = None
 
-  def graph_repr(self):
+  @property
+  def a(self):
+    return self._a
+
+  @property
+  def b(self):
+    return self._b
+
+  @property
+  def attrs(self):
+    return self._attrs
+
+  @property
+  def mirror(self):
+    return self._mirror
+
+  @mirror.setter
+  def mirror(self, o):
+    self._check_type(o)
+    self._mirror = o
+
+  def reset(self):
+    self._attrs = self._attrs_prototype()
+    self._states = self._states_prototype()
+
+  def shallow_reset(self):
+    self._states.passed = False
+
+  def is_passed(self):
+    return self._states.passed
+
+  def set_passed(self):
+    self._states.passed = True
+
+  def graph_repr(self) -> str:
     # mermaid diagram node repr
-    return f'{id(self.a)}[{self.a}] --> {id(self.b)}[{self.b}]'
+    return '{}({}) -- w:{:.01f}, L:{:.01f} --> {}({})'.format(
+      id(self.a),
+      self.a,
+      self._attrs.weight,
+      self._attrs.length,
+      id(self.b),
+      self.b
+    )
 
 
 class Node:
 
-  def _assert_type(self, o):
-    assert o is None or isinstance(o, self.__class__), f'arg is not instance of {self.__class__}'
+  _check_type = _g_check_type
 
   def __repr__(self):
     return f'{self.__class__.__name__} {self.name}'
@@ -40,13 +102,12 @@ class Node:
 
   @parent.setter
   def parent(self, o):
-    self._assert_type(o)
+    self._check_type(o)
     if o == self:
       raise ValueError('parent cannot refer to self')
     if not self._parent_index is None:
       self._edges.pop(self._parent_index)
-    edge = Edge(self, o)
-    self._edges.append(edge)
+    edge = self._append_edge(o)
     self._parent_index = self._edges.index(edge)
 
   @property
@@ -69,6 +130,18 @@ class Node:
 
   def is_internal(self):
     return self.is_leaf() and not self.is_root()
+
+  def has(self, o):
+    for node in self._iter_edges():
+      if node.a == self and node.b == o:
+        return True
+    return False
+
+  def _append_edge(self, o):
+    self._check_type(o)
+    edge = Edge(self, o)
+    self._edges.append(edge)
+    return edge
 
   def _iter_edges(self) -> t.Generator:
     yield from self._edges
@@ -103,21 +176,26 @@ class Node:
   def recurse_nodes(self) -> t.Generator:
     yield from self._recurse_nodes()
 
-  def recurse_callback(self, callback: t.Callable, *args, **kwargs) -> t.Generator:
-    for node in self._recurse_nodes():
-      yield callback(node, *args, **kwargs)
-
   def recurse_edges(self) -> t.Generator:
     for node in self._recurse_nodes():
       for edge in node._iter_edges():
-        yield edge
+        if not edge.is_passed():
+          yield edge
+        edge.set_passed()
+      edge.shallow_reset()
 
   def get_edge_index_by_ref(self, o):
-    self._assert_type(o)
+    self._check_type(o)
     for n, edge in enumerate(self._edges):
-      if edge.b == o:
+      if edge.a == self and edge.b == o:
         return n
     return None
+
+  def get_edge_by_ref(self, o):
+    i = self.get_edge_index_by_ref(o)
+    if i is None:
+      return
+    return self._edges[i]
 
   def get_child_index_by_attr(self, value, attr):
     for n, ch in enumerate(self._iter_children()):
@@ -138,13 +216,12 @@ class Node:
     return self.__class__(name=name, parent=self)
 
   def append_child(self, child):
-    self._assert_type(child)
+    self._check_type(child)
     if not self.get_child_by_name(child.name) is None:
       raise ValueError(f'child {child} name already exists in parent children')
     if child in self.children:
       raise ValueError(f'child {child} already exists in parent children')
-    edge = Edge(self, child)
-    self._edges.append(edge)
+    self._append_edge(child)
 
   def pop_child_by_name(self, name):
     i = self.get_child_index_by_name(name)
