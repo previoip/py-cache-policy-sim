@@ -3,6 +3,7 @@ from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
 import queue
 import threading
+from bootstrap import dispatch_default
 
 sim_conf = {
   'general': {
@@ -14,7 +15,7 @@ sim_conf = {
     'user_key'  : 'user_id',
     'value_key' : 'rating'
   },
-
+ 
   'network_conf': {
     'base_server_alloc_frac': .8,
     'edge_server_alloc_frac': .4,
@@ -70,19 +71,24 @@ if __name__ == '__main__':
   data_loader.load()
 
 
-  scheduler = queue.LifoQueue()
+  scheduler = queue.Queue()
   runner = create_worker(scheduler)
 
   # ================================================
   # server sim setup
 
   base_server = Server('base_server')
-  base_server.database = PandasDataFramePDB('movie_db', prepare_movie_df(data_loader))
+  base_server.set_database(PandasDataFramePDB('movie_db', prepare_movie_df(data_loader)))
   base_server.setup()
+  base_server.event_manager.set_scheduler(scheduler)
+  dispatch_default(base_server.event_manager)
 
   for n in range(sim_conf['network_conf']['num_edge']):
     edge_server = base_server.spawn_child(f'edge_server_{n}')
     edge_server.setup()
+    edge_server.event_manager.set_scheduler(scheduler)
+    dispatch_default(edge_server.event_manager)
+
 
   # ================================================
   # begin
@@ -107,3 +113,10 @@ if __name__ == '__main__':
   scheduler.join()
 
 
+  i = 0
+  while i < 10:
+    print(i)
+    i += 1
+    break
+  else:
+    print('foo')

@@ -1,61 +1,69 @@
 import typing as t
 import queue
+from collections import namedtuple
 
+EventContext = namedtuple('EventContext', ['event_target', 'event_manager'], defaults=[None, None])
 
-class Listener:
-  pass
+def new_event_thread_worker(scheduler: queue.Queue) -> t.Callable:
+  def worker():
+    while True:
+      listener, context = scheduler.get()
+      errno = listener(context)
+      scheduler.task_done()
+      if errno != 0:
+        pass
+  return worker
 
 class Event:
-  def __init__(self, name, params=None, event_manager=None):
-    self._name = name
-    self._params = {} if params is None else params
-    self._event_manager = event_manager
-    self._listeners = []
-
-  @property
-  def name(self):
-    return self._name
-
-  @name.setter
-  def name(self, v):
-    self._name = v
-
-  @property
-  def params(self):
-    return self._params
-
-  @params.setter
-  def params(self, v: dict):
-    self._params.update(v)
+ 
+  def __init__(self, event_type):
+    self._event_type = event_type
+    self._event_listeners = []
 
   @property
   def listeners(self):
     return self._listeners.copy()
 
-  def add_listener(self, listener: Listener):
-    self._listeners.append(listener)
+  @property
+  def event_type(self):
+    return self._event_type
 
-  def set_event_manager(self, event_manager):
-    self._event_manager = event_manager
+  def add_listener(self, name, listener):
+    self._event_listeners.append(listener)
+
+  def run(self, scheduler, context):
+    for listener in self._event_listeners:
+      scheduler.put((listener, context))
+
 
 class EventManager:
   _event_prototype = Event
+  _context_prototype = EventContext
 
-  def __init__(self, job_scheduler=None):
-    self.event_pool: t.Mapping[t.Hashable, self._event_prototype] = {}
-    self.job_scheduler: queue.Queue = job_scheduler
+  def __init__(self, event_target, job_scheduler=None):
+    self._event_target = event_target
+    self._job_scheduler: queue.Queue = job_scheduler
+    self._event_pool: t.Mapping[t.Hashable, self._event_prototype] = {}
 
-  def new_event(self, name, target_host=None, params=None):
-    event = self._event_prototype(name, target_host=target_host, params=params, event_manager=self)
-    self.attach_event(name, event)
-    return event
+  def set_scheduler(self, scheduler):
+    self._job_scheduler = scheduler
 
-  def attach_event(self, name, event):
-    self.event_pool[name] = event
+  @staticmethod
+  def new_event(event_type):
+    return EventManager._event_prototype(event_type)
 
-  def trigger_event(self, name):
-    event = self.event_pool.get(name)
+  def attach_event(self, event: Event):
+    self._event_pool[event.event_type] = event
+
+  def get_event(self, event_type):
+    return self._event_pool.get(event_type, default=None)
+
+  def trigger_event(self, event_type):
+    event = self.get_event(event_type)
     if event is None:
       return
-    for listener in event.listeners:
-      self.job_scheduler.put(listener)
+
+    event.run(
+      self._job_scheduler,
+      self._context_prototype(self._event_target, self)
+    )

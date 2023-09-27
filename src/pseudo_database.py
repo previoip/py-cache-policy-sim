@@ -26,10 +26,10 @@ class ABCPseudoDatabase:
       return self._get(key)
 
   def _has(self, key: t.Hashable):
-    raise NotImplementedError
+    raise NotImplementedError()
 
   def _get(self, key: t.Hashable):
-    raise NotImplementedError
+    raise NotImplementedError()
 
 
 from pandas import DataFrame
@@ -44,6 +44,6 @@ class PandasDataFramePDB(ABCPseudoDatabase):
     return key in self._index
 
   def _get(self, key: t.Hashable):
-    if not self.has(key):
+    if not self._has(key):
       return None
     return self._container.loc[key].values

@@ -1,28 +1,17 @@
 import time
 import typing as t
-from dataclasses import dataclass
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 from collections.abc import Mapping
 from threading import RLock
 from src.trace import trace_fn
 from src.logger_helper import spawn_logger
 
+_logger = spawn_logger(__name__, f'log/{__name__}.log')
 
 T_TTL = t.Union[int, float]
 T_SIZE = int
 
-_logger = spawn_logger(__name__, f'log/{__name__}.log')
-
-@dataclass
-class CacheRecord:
-  ttl: T_TTL
-  size: int
-  value: t.Any
-
-  # @trace_fn(_logger)
-  def __iter__(self):
-    return iter((self.ttl, self.size, self.value))
-
+CacheRecord = namedtuple('CacheRecord', field_names=['ttl', 'size', 'value'])
 
 class Cache:
   _cache: Mapping[t.Hashable, CacheRecord]
@@ -148,7 +137,7 @@ class Cache:
       val = self._cache[key]
       if self.has_expired(key):
         self.delete(key)
-        raise KeyError
+        raise KeyError()
     except KeyError:
       return None
     return val
