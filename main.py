@@ -3,7 +3,7 @@ from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
 import queue
 import threading
-from bootstrap import dispatch_default
+from bootstrap import set_default_event
 
 sim_conf = {
   'general': {
@@ -52,15 +52,6 @@ def prepare_user_df(data_loader):
   user_ls = data_loader.df_user[[user_key]].unique()
   user_count = len(user_ls)
 
-def create_worker(q: queue.Queue):
-  def worker():
-    while True:
-      task = q.get()
-      errno = task()
-      q.task_done()
-  return worker
-
-
 if __name__ == '__main__':
 
   # ================================================
@@ -70,53 +61,31 @@ if __name__ == '__main__':
   data_loader.download()
   data_loader.load()
 
-
-  scheduler = queue.Queue()
-  runner = create_worker(scheduler)
-
   # ================================================
   # server sim setup
 
   base_server = Server('base_server')
   base_server.set_database(PandasDataFramePDB('movie_db', prepare_movie_df(data_loader)))
   base_server.setup()
-  base_server.event_manager.set_scheduler(scheduler)
-  dispatch_default(base_server.event_manager)
+  set_default_event(base_server.event_manager)
 
   for n in range(sim_conf['network_conf']['num_edge']):
     edge_server = base_server.spawn_child(f'edge_server_{n}')
     edge_server.setup()
-    edge_server.event_manager.set_scheduler(scheduler)
-    dispatch_default(edge_server.event_manager)
+    set_default_event(edge_server.event_manager)
 
 
   # ================================================
   # begin
 
-  thread = threading.Thread(target=runner, daemon=True)
-  thread.start()
-
-  def tw_test_fetch_from_db(pdb, key):
-    def tw():
-      print(key, pdb.get(key))
-      return 0
-    return tw
+  for server in base_server.recurse_nodes():
+    server.run_thread()
 
   _max_req = sim_conf['general']['trial_cutoff']
   for row, _index, user_id, item_id, value, timestamp in iter_requests(prepare_request_df(data_loader)):
-
-    task = tw_test_fetch_from_db(base_server.database, item_id)
-    scheduler.put(task)
-
     if _max_req != 0 and row > _max_req: break
 
-  scheduler.join()
+  base_server.event_manager.trigger_event('OnContentRequest')
 
-
-  i = 0
-  while i < 10:
-    print(i)
-    i += 1
-    break
-  else:
-    print('foo')
+  for server in base_server.recurse_nodes():
+    server.block_until_finished()
