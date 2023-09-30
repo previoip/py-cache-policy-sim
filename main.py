@@ -8,7 +8,7 @@ import numpy as np
 
 sim_conf = {
   'general': {
-    'rand_seed': 1,
+    'rand_seed': 1337,
     'trial_cutoff': 100
   },
 
@@ -129,3 +129,6 @@ if __name__ == '__main__':
 
   for server in base_server.recurse_nodes():
     server.block_until_finished()
+
+  for server in base_server.recurse_nodes():
+    print(server, server.request_log_database)

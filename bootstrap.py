@@ -54,7 +54,16 @@ def handle_print_context(ctx: EventContext, event_param):
   print(ctx, ctx.event_target.cache._timer())
   return 0
 
+def handle_log_request(ctx: EventContext, event_param):
+  if not hasattr(event_target, 'request_log_database'):
+    return 1
+  ctx.event_target.request_log_database.add_entry(
+    0, event_param.user_id, event_param.item_id
+  )
+  return 0
+
 event_on_content_request.add_listener(handle_print_context)
+event_on_content_request.add_listener(handle_log_request)
 
 def set_default_event(event_manager: EventManager):
   for event in [

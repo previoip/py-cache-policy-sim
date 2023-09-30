@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from src.node import Node
 from src.cache import Cache, T_TTL, T_SIZE
-from src.pseudo_database import ABCPseudoDatabase
+from src.pseudo_database import ABCPseudoDatabase, RequestLogDatabase
 from src.event import EventManager, new_event_thread_worker
 
 
@@ -26,6 +26,7 @@ class Server(Node):
     self._cache: Cache = None
     self._event_manager: EventManager = None
     self._database: ABCPseudoDatabase = None
+    self._request_log_database = None
     self._worker: t.Callable = None
     self._thread: threading.Thread = None
 
@@ -45,10 +46,15 @@ class Server(Node):
   def database(self):
     return self._database
 
+  @property
+  def request_log_database(self):
+    return self._request_log_database
+
   def set_database(self, database: ABCPseudoDatabase):
     self._database = database
 
   def setup(self):
+    self._request_log_database = RequestLogDatabase(f'{self.name}', container=list())
     self._cache = Cache()
     self._cache.configure(
       maxsize=self.cfg.cache_maxsize,
