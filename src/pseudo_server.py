@@ -1,15 +1,18 @@
 import queue
 import threading
+import time
 from dataclasses import dataclass
 from src.node import Node
 from src.cache import Cache, T_TTL, T_SIZE
 from src.pseudo_database import ABCPseudoDatabase
 from src.event import EventManager, new_event_thread_worker
 
+
 @dataclass
 class ServerConfig:
   cache_maxsize: T_SIZE = 1024
   cache_maxage: T_TTL   = 0
+  cache_timer_func = time.time 
   job_queue_maxsize: int = 0
 
 
@@ -49,7 +52,8 @@ class Server(Node):
     self._cache = Cache()
     self._cache.configure(
       maxsize=self.cfg.cache_maxsize,
-      maxage=self.cfg.cache_maxage
+      maxage=self.cfg.cache_maxage,
+      timer=self.cfg.cache_timer_func,
     )
     self._job_queue = queue.Queue(
       self.cfg.job_queue_maxsize

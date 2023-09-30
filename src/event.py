@@ -2,21 +2,22 @@ import typing as t
 import queue
 import sys
 import traceback
+from warnings import warn
 from threading import RLock
-
 from src import pseudo_server 
 
 class EventContext(t.NamedTuple):
+  event_type: str
   event_target: 'pseudo_server.Server' = None
   event_manager: "EventManager" = None
 
 def new_event_thread_worker(queue: queue.Queue) -> t.Callable:
   def worker():
     while True:
-      listener, context = queue.get()
+      listener, context, event_param = queue.get()
 
       try:
-        errno = listener(context)
+        errno = listener(context, event_param=event_param)
         if errno != 0:
           raise RuntimeError(f'custom errno: {errno}')
 
@@ -48,10 +49,10 @@ class Event:
     with self._lock:
       self._event_listeners.append(listener)
 
-  def run(self, queue, context):
+  def run(self, queue, context, event_param):
     with self._lock:
       for listener in self._event_listeners:
-        queue.put((listener, context))
+        queue.put((listener, context, event_param))
 
 
 class EventManager:
@@ -78,12 +79,14 @@ class EventManager:
     with self._lock:
       return self._event_pool.get(event_type)
 
-  def trigger_event(self, event_type):
+  def trigger_event(self, event_type, event_param=None):
     with self._lock:
       event = self.get_event(event_type)
       if event is None:
+        warn('{} event type does not exist'.format(event_type))
         return
       event.run(
         self._job_queue,
-        self._context_prototype(self._event_target, self)
+        self._context_prototype(event_type, self._event_target, self),
+        event_param
       )

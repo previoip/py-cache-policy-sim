@@ -1,12 +1,14 @@
 from src.pseudo_server import Server
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
+from src.pseudo_timer import PseudoTimer
 import queue
 import threading
-from bootstrap import set_default_event
+import numpy as np
 
 sim_conf = {
   'general': {
+    'rand_seed': 1,
     'trial_cutoff': 100
   },
 
@@ -47,33 +49,60 @@ def prepare_movie_df(data_loader):
   df_movies.set_index(item_key, drop=False, inplace=True)
   return df_movies
 
-def prepare_user_df(data_loader):
+def prepare_user_partition(data_loader, n_indices):
   user_key = sim_conf['loader_conf']['user_key']
-  user_ls = data_loader.df_user[[user_key]].unique()
-  user_count = len(user_ls)
+  user_values = data_loader.df_users[user_key].unique()
+  np.random.shuffle(user_values)
+  return np.array_split(user_values, n_indices)
+
+def group_partition(partition, object_list):
+  if not len(partition) == len(object_list):
+    raise ValueError('partition length is not equal to object_list length')
+  ret = {}
+  for n, items in enumerate(partition):
+    for item in items:
+      ret[item] = object_list[n]
+  return ret
+
 
 if __name__ == '__main__':
 
   # ================================================
   # bootstrap
+  
+  from bootstrap import set_default_event, EventParamContentRequest
+
+  np.random.seed(sim_conf['general']['rand_seed'])
+
+  pseudo_timer = PseudoTimer()
 
   data_loader = ExampleDataLoader()
   data_loader.download()
   data_loader.load()
 
+  item_df = prepare_movie_df(data_loader)
+  item_total_size = item_df['sizeof'].sum()
+
+  edge_users_partition = prepare_user_partition(data_loader, sim_conf['network_conf']['num_edge'])
+
   # ================================================
   # server sim setup
 
   base_server = Server('base_server')
-  base_server.set_database(PandasDataFramePDB('movie_db', prepare_movie_df(data_loader)))
+  base_server.set_database(PandasDataFramePDB('movie_db', item_df))
+  base_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['base_server_alloc_frac']
+  base_server.cfg.cache_timer_func = pseudo_timer.get_time
   base_server.setup()
   set_default_event(base_server.event_manager)
 
   for n in range(sim_conf['network_conf']['num_edge']):
     edge_server = base_server.spawn_child(f'edge_server_{n}')
+    edge_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['edge_server_alloc_frac']
+    edge_server.cfg.cache_timer_func = pseudo_timer.get_time
     edge_server.setup()
     set_default_event(edge_server.event_manager)
 
+  user_to_edge_server_map = group_partition(edge_users_partition, base_server.children)
 
   # ================================================
   # begin
@@ -83,9 +112,20 @@ if __name__ == '__main__':
 
   _max_req = sim_conf['general']['trial_cutoff']
   for row, _index, user_id, item_id, value, timestamp in iter_requests(prepare_request_df(data_loader)):
-    if _max_req != 0 and row > _max_req: break
+    if _max_req != 0 and row >= _max_req: break
+  
+    print(row, f'performing request: user_id:{user_id} item_id:{item_id}')
+  
+    pseudo_timer.set_time(timestamp)
+    edge_server = user_to_edge_server_map.get(user_id)
 
-  base_server.event_manager.trigger_event('OnContentRequest')
+    request_param = EventParamContentRequest(
+      edge_server,
+      user_id,
+      item_id
+    )
+
+    edge_server.event_manager.trigger_event('OnContentRequest', event_param=request_param)
 
   for server in base_server.recurse_nodes():
     server.block_until_finished()
