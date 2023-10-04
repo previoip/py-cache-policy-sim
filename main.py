@@ -1,7 +1,7 @@
 from src.pseudo_server import Server
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
-from src.pseudo_timer import PseudoTimer
+# from src.pseudo_timer import PseudoTimer
 import queue
 import threading
 import numpy as np
@@ -19,6 +19,7 @@ sim_conf = {
   },
  
   'network_conf': {
+    'cache_ttl': 99999,
     'base_server_alloc_frac': .8,
     'edge_server_alloc_frac': .4,
     'num_edge': 5, # number of user-end (edge/client) groups, previously `num_cl`
@@ -74,7 +75,7 @@ if __name__ == '__main__':
 
   np.random.seed(sim_conf['general']['rand_seed'])
 
-  pseudo_timer = PseudoTimer()
+  # pseudo_timer = PseudoTimer()
 
   data_loader = ExampleDataLoader()
   data_loader.download()
@@ -90,15 +91,17 @@ if __name__ == '__main__':
 
   base_server = Server('base_server')
   base_server.set_database(PandasDataFramePDB('movie_db', item_df))
+  # base_server.set_timer(pseudo_timer.get_time)
   base_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['base_server_alloc_frac']
-  base_server.cfg.cache_timer_func = pseudo_timer.get_time
+  base_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
   base_server.setup()
   set_default_event(base_server.event_manager)
 
   for n in range(sim_conf['network_conf']['num_edge']):
     edge_server = base_server.spawn_child(f'edge_server_{n}')
+    # edge_server.set_timer(pseudo_timer.get_time)
     edge_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['edge_server_alloc_frac']
-    edge_server.cfg.cache_timer_func = pseudo_timer.get_time
+    edge_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
     edge_server.setup()
     set_default_event(edge_server.event_manager)
 
@@ -114,21 +117,18 @@ if __name__ == '__main__':
   for row, _index, user_id, item_id, value, timestamp in iter_requests(prepare_request_df(data_loader)):
     if _max_req != 0 and row >= _max_req: break
   
+    # pseudo_timer.set_time(timestamp)
+
     print(row, f'performing request: user_id:{user_id} item_id:{item_id}')
-  
-    pseudo_timer.set_time(timestamp)
     edge_server = user_to_edge_server_map.get(user_id)
-
-    request_param = EventParamContentRequest(
-      edge_server,
-      user_id,
-      item_id
-    )
-
+    request_param = EventParamContentRequest(edge_server, user_id, item_id, 1)
     edge_server.event_manager.trigger_event('OnContentRequest', event_param=request_param)
 
   for server in base_server.recurse_nodes():
     server.block_until_finished()
 
   for server in base_server.recurse_nodes():
-    print(server, server.request_log_database)
+    print(server, server.request_log_database, f'{server.cache.usage/server.cache.maxsize*100:02f}')
+
+  for edges in base_server.recurse_edges():
+    print(edges.graph_repr())

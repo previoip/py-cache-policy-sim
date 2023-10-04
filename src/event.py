@@ -4,6 +4,7 @@ import sys
 import traceback
 from warnings import warn
 from threading import RLock
+from functools import wraps
 from src import pseudo_server 
 
 class EventContext(t.NamedTuple):
@@ -90,3 +91,15 @@ class EventManager:
         self._context_prototype(event_type, self._event_target, self),
         event_param
       )
+
+  @staticmethod
+  def wrap_emitter_on_method_call(event_type):
+    def wrapper(fn):
+      @wraps(fn)
+      def wfn(self, *args, **kwargs):
+        result = fn(self, *args, **kwargs)
+        if hasattr(self, 'event_manager'):
+          self.event_manager.trigger_event(event_type)
+        return result
+      return wfn
+    return wrapper
