@@ -1,11 +1,14 @@
 import typing as t
 import queue
 import sys
+import time
 import traceback
 from warnings import warn
-from threading import RLock
+from threading import RLock, Event as ThreadingEvent
 from functools import wraps
-from src import pseudo_server 
+from src import pseudo_server
+
+event_thread_worker_sleep_controller = ThreadingEvent()
 
 class EventContext(t.NamedTuple):
   event_type: str
@@ -27,6 +30,9 @@ def new_event_thread_worker(queue: queue.Queue) -> t.Callable:
 
       finally:
         queue.task_done()
+
+      # while event_thread_worker_sleep_controller.is_set():
+      #   time.sleep(.1)
 
   return worker
 

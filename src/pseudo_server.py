@@ -4,7 +4,7 @@ import time
 from dataclasses import dataclass
 from src.node import Node
 from src.cache import Cache, T_TTL, T_SIZE
-from src.pseudo_database import ABCPseudoDatabase, RequestLogDatabase
+from src.pseudo_database import ABCPseudoDatabase, TabularPDB
 from src.event import EventManager, new_event_thread_worker
 
 
@@ -14,10 +14,18 @@ class ServerConfig:
   cache_maxage: T_TTL   = 0
   job_queue_maxsize: int = 0
 
+@dataclass
+class ServerStates:
+  request_counter: int = 0
+  cache_hit_counter: int = 0
+  cache_miss_counter: int = 0
+
+
 class ServerBuffers:
   def __init__(self):
     self.response = queue.Queue()
     self.uncached_content = queue.Queue()
+
 
 class Server(Node):
 
@@ -25,15 +33,23 @@ class Server(Node):
     super().__init__(name=name, parent=parent)
 
     self.cfg: ServerConfig = ServerConfig()
+    self._server_states: ServerStates = ServerStates()
+    self._server_states_lock: threading.RLock = threading.RLock()
     self._job_queue: queue.Queue = job_queue
     self._buffers: ServerBuffers = None
     self._cache: Cache = None
     self._event_manager: EventManager = None
     self._database: ABCPseudoDatabase = None
     self._request_log_database = None
+    self._request_status_log_database = None
     self._timer: t.Callable = time.time
     self._worker: t.Callable = None
     self._thread: threading.Thread = None
+
+  @property
+  def states(self):
+    with self._server_states_lock:
+      return self._server_states
 
   @property
   def buffers(self):
@@ -60,8 +76,15 @@ class Server(Node):
     return self._request_log_database
 
   @property
+  def request_status_log_database(self):
+    return self._request_status_log_database
+
+  @property
   def timer(self):
     return self._timer
+
+  def has_database(self):
+    return not self._database is None
 
   def set_jog_queue(self, job_queue):
     self._job_queue = job_queue
@@ -77,7 +100,16 @@ class Server(Node):
 
   def setup(self):
     self._buffers = ServerBuffers()
-    self._request_log_database = RequestLogDatabase(f'{self.name}', container=list())
+    self._request_log_database = TabularPDB(
+      f'{self.name}',
+      container=list(),
+      field_names=['timestamp', 'user_id', 'item_id']
+    )
+    self._request_status_log_database = TabularPDB(
+      f'{self.name}',
+      container=list(),
+      field_names=['timestamp', 'user_id', 'item_id', 'status']
+    )
     self._cache = Cache()
     self._cache.configure(
       maxsize=self.cfg.cache_maxsize,
@@ -85,7 +117,7 @@ class Server(Node):
       timer=self._timer,
     )
     self._job_queue = queue.Queue(
-      self.cfg.job_queue_maxsize
+      maxsize=self.cfg.job_queue_maxsize
     )
     self._event_manager = EventManager(
       event_target=self,

@@ -1,6 +1,8 @@
 import typing as t
 from threading import Lock, RLock
 from collections import namedtuple
+import sys
+
 
 class ABCPseudoDatabase:
   _name: str
@@ -50,6 +52,9 @@ class ABCPseudoDatabase:
   def _clear(self):
     raise NotImplementedError()
 
+  def dump(self, fp: t.TextIO, delim=';'):
+    raise NotImplementedError()
+
 
 from pandas import DataFrame
 
@@ -82,14 +87,24 @@ class ListPDB(ABCPseudoDatabase):
   def _add(self, key: t.Hashable, entry: t.Any):
     return self._container.append(entry)
 
-class RequestLogDatabase(ListPDB):
+  def dump(self, fp: t.TextIO, delim: str=';'):
+    if hasattr(self, 'field_names'):
+      fp.writelines((delim.join(self.field_names), '\n'))
 
-  _entry_prototype = namedtuple('LogRecord', ['timestamp', 'user_id', 'item_id'])
+    for entry in self._container:
+      try:
+        fp.writelines((delim.join(map(lambda x: str(x), iter(entry))), '\n'))
+      except TypeError:
+        fp.writelines((str(entry), '\n'))
 
-  def __init__(self, name, container: list=list()):
+
+class TabularPDB(ListPDB):
+
+  def __init__(self, name, container: list=list(), field_names=['timestamp', 'entry']):
     super().__init__(name=name, container=container)
+    self.field_names = field_names
+    self._entry_prototype = namedtuple(f'{self._name}Record', field_names)
 
-  def add_entry(self, timestamp, user_id, item_id):
+  def add_entry(self, *values):
     with self._lock:
-      self._add(None, self._entry_prototype(timestamp, user_id, item_id))
-
+      self._add(None, self._entry_prototype(*values))

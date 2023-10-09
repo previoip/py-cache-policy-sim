@@ -88,6 +88,9 @@ class Cache:
       return sums
 
   @property
+  def frac_usage(self):
+    return self.usage / self.maxsize
+
   def is_full(self):
     if self.maxsize <= 0 or self.maxsize is None:
       return False
@@ -115,10 +118,10 @@ class Cache:
 
   def has(self, key):
     with self._lock:
-      self._has(key)
+      return self._has(key)
 
   def _has(self, key):
-    self._get(key, default=None) is not None
+    return self._get(key, default=None) is not None
 
   def get(self, key, default=None):
     with self._lock:
@@ -182,7 +185,7 @@ class Cache:
         self._delete(key)
     
     while self.is_full():
-      self._cache._pop()
+      self._pop()
 
   def has_expired(self, key: t.Hashable):
     with self._lock:
@@ -203,6 +206,15 @@ class Cache:
   def _pop(self, key: t.Optional[t.Hashable] = None):
     if key is None:
       key = next(self)
-    key, (_, _, value) = self._cache[key]
+    cache_record = self._cache[key]
     self._delete(key)
-    return (key, value)
+    return (key, cache_record)
+
+  def move_to_end(self, key: t.Optional[t.Hashable]):
+    with self._lock:
+      self._move_to_end(key)
+
+  def _move_to_end(self, key: t.Optional[t.Hashable]):
+    if key is None:
+      key = self._cache.keys()[0]
+    self._cache.move_to_end(key, last=True)

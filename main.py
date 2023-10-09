@@ -1,7 +1,10 @@
 from src.pseudo_server import Server
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
+from src.event import event_thread_worker_sleep_controller
 # from src.pseudo_timer import PseudoTimer
+import time
+import tqdm
 import queue
 import threading
 import numpy as np
@@ -9,7 +12,9 @@ import numpy as np
 sim_conf = {
   'general': {
     'rand_seed': 1337,
-    'trial_cutoff': 100
+    'trial_cutoff': 10000,
+    'dump_logs': True,
+    'round_at_n_iter': 1000,
   },
 
   'loader_conf': {
@@ -21,7 +26,7 @@ sim_conf = {
   'network_conf': {
     'cache_ttl': 99999,
     'base_server_alloc_frac': .8,
-    'edge_server_alloc_frac': .4,
+    'edge_server_alloc_frac': .2,
     'num_edge': 5, # number of user-end (edge/client) groups, previously `num_cl`
   }
 }
@@ -75,6 +80,7 @@ if __name__ == '__main__':
 
   np.random.seed(sim_conf['general']['rand_seed'])
 
+
   # pseudo_timer = PseudoTimer()
 
   data_loader = ExampleDataLoader()
@@ -91,7 +97,7 @@ if __name__ == '__main__':
 
   base_server = Server('base_server')
   base_server.set_database(PandasDataFramePDB('movie_db', item_df))
-  # base_server.set_timer(pseudo_timer.get_time)
+  base_server.set_timer(lambda: 0)
   base_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['base_server_alloc_frac']
   base_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
   base_server.setup()
@@ -99,7 +105,7 @@ if __name__ == '__main__':
 
   for n in range(sim_conf['network_conf']['num_edge']):
     edge_server = base_server.spawn_child(f'edge_server_{n}')
-    # edge_server.set_timer(pseudo_timer.get_time)
+    edge_server.set_timer(lambda: 0)
     edge_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['edge_server_alloc_frac']
     edge_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
     edge_server.setup()
@@ -110,25 +116,65 @@ if __name__ == '__main__':
   # ================================================
   # begin
 
+  print()
+  print('='*48)
+  print()
+  print('starting sim')
+  print()
+
+  _round_at_n_iter = sim_conf['general']['round_at_n_iter']
+  _max_req = sim_conf['general']['trial_cutoff']
+  _it_request = iter_requests(prepare_request_df(data_loader))
+  _tqdm_it_request = tqdm.tqdm(_it_request, total=_max_req, ascii=True)
+
   for server in base_server.recurse_nodes():
     server.run_thread()
 
-  _max_req = sim_conf['general']['trial_cutoff']
-  for row, _index, user_id, item_id, value, timestamp in iter_requests(prepare_request_df(data_loader)):
+  for row, _index, user_id, item_id, value, timestamp in _tqdm_it_request:
     if _max_req != 0 and row >= _max_req: break
   
-    # pseudo_timer.set_time(timestamp)
+    _tqdm_it_request.set_description(f'performing request: user_id:{user_id} item_id:{item_id}'.ljust(55))
 
-    print(row, f'performing request: user_id:{user_id} item_id:{item_id}')
     edge_server = user_to_edge_server_map.get(user_id)
-    request_param = EventParamContentRequest(edge_server, user_id, item_id, 1)
-    edge_server.event_manager.trigger_event('OnContentRequest', event_param=request_param)
+    content_request_param = EventParamContentRequest(edge_server, timestamp, user_id, item_id, 1)
+    edge_server.event_manager.trigger_event('OnContentRequest', event_param=content_request_param)
 
+    if (row + 1) % _round_at_n_iter == 0:
+      _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter}'.ljust(55))
+      event_thread_worker_sleep_controller.set()
+      
+      # round checkpoint routine: train recsys/fl model on main thread
+      time.sleep(1)
+
+      event_thread_worker_sleep_controller.clear()
+
+
+
+  print('waiting for processes to finish...')
   for server in base_server.recurse_nodes():
     server.block_until_finished()
 
-  for server in base_server.recurse_nodes():
-    print(server, server.request_log_database, f'{server.cache.usage/server.cache.maxsize*100:02f}')
+  print()
+  print('='*48)
+  print()
+  print('sim finished, results:')
 
+
+  print()
+  print('cache usage statistics')
+  for server in base_server.recurse_nodes():
+    print('\t-', server, server.request_log_database, f'| cache usage {server.cache.frac_usage*100:.02f}%')
+
+  if sim_conf['general']['dump_logs']:
+    print()
+    print('dumping request logs...')
+    for server in base_server.recurse_nodes():
+      with open('log/req_log_' + server.name + '.csv', 'w') as fo:
+        server.request_log_database.dump(fo)
+      with open('log/req_stat_log_' + server.name + '.csv', 'w') as fo:
+        server.request_status_log_database.dump(fo)
+
+  print()
+  print('mermaid graph repr:')
   for edges in base_server.recurse_edges():
     print(edges.graph_repr())
