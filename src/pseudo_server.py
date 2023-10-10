@@ -6,7 +6,7 @@ from src.node import Node
 from src.cache import Cache, T_TTL, T_SIZE
 from src.pseudo_database import ABCPseudoDatabase, TabularPDB
 from src.event import EventManager, new_event_thread_worker
-
+from src.model.model_abc import ABCRecSysModel
 
 @dataclass
 class ServerConfig:
@@ -19,6 +19,9 @@ class ServerStates:
   request_counter: int = 0
   cache_hit_counter: int = 0
   cache_miss_counter: int = 0
+
+  def hit_ratio(self):
+    return self.cache_hit_counter / self.request_counter
 
 
 class ServerBuffers:
@@ -45,6 +48,7 @@ class Server(Node):
     self._timer: t.Callable = time.time
     self._worker: t.Callable = None
     self._thread: threading.Thread = None
+    self._model: ABCRecSysModel = None
 
   @property
   def states(self):
@@ -83,6 +87,10 @@ class Server(Node):
   def timer(self):
     return self._timer
 
+  @property
+  def model(self):
+    return self._model
+
   def has_database(self):
     return not self._database is None
 
@@ -97,6 +105,9 @@ class Server(Node):
 
   def set_database(self, database: ABCPseudoDatabase):
     self._database = database
+
+  def set_model(self, model: ABCRecSysModel):
+    self._model = model
 
   def setup(self):
     self._buffers = ServerBuffers()

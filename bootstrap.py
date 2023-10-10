@@ -25,6 +25,8 @@ event_on_db_missed = Event('OnDatabaseMissed')
 event_on_cache_hit = Event('OnCacheHit')
 event_on_cache_missed = Event('OnCacheMissed')
 
+subroutine_cache = Event('SubCache')
+
 # ======================================================
 
 def handle_clear_cache(ctx: EventContext, event_param): 
@@ -55,10 +57,12 @@ def handle_request(ctx: EventContext, event_param):
           event_param=EventParamContentRequestStatus(*event_param, 'db_missed')
         )
 
-    elif not server.parent is None:
+    elif not server.is_root():
       # propagate/delegate to parent server
       server.parent.event_manager.trigger_event('OnContentRequest', event_param=event_param)
 
+  server.event_manager.trigger_event('SubCache', event_param=event_param)
+  ctx.event_target.states.request_counter += 1
   return 0
 
 event_on_content_request.add_listener(handle_request)
@@ -69,7 +73,15 @@ def handle_cache_content(ctx: EventContext, event_param):
   ctx.event_target.cache.add(event_param.item_id, None, 1)
   return 0
 
-event_on_content_request.add_listener(handle_cache_content)
+subroutine_cache.add_listener(handle_cache_content)
+
+# ======================================================
+
+def handle_cache_eviction_policy(ctx: EventContext, event_param): 
+  ctx.event_target.cache.evict()
+  return 0
+
+subroutine_cache.add_listener(handle_cache_eviction_policy)
 
 # ======================================================
 
@@ -105,6 +117,18 @@ event_on_cache_missed.add_listener(handle_log_request_status)
 
 # ======================================================
 
+def handle_incr_states(ctx: EventContext, event_param):
+  if event_param.status == 'cache_hit':
+    ctx.event_target.states.cache_hit_counter += 1
+  elif event_param.status == 'cache_miss':
+    ctx.event_target.states.cache_miss_counter += 1
+  return 0
+
+event_on_cache_hit.add_listener(handle_incr_states)
+event_on_cache_missed.add_listener(handle_incr_states)
+
+# ======================================================
+
 # def handle_print_param(ctx: EventContext, event_param):
 #   print('dequeued param:', event_param)
 #   return 0
@@ -120,5 +144,6 @@ def set_default_event(event_manager: EventManager):
     event_on_db_missed,
     event_on_cache_hit,
     event_on_cache_missed,
+    subroutine_cache,
   ]:
     event_manager.attach_event(event)

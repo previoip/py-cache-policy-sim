@@ -2,6 +2,7 @@ from src.pseudo_server import Server
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
 from src.event import event_thread_worker_sleep_controller
+from src.model.randomized_svd import RandomizedSVD
 # from src.pseudo_timer import PseudoTimer
 import time
 import tqdm
@@ -24,10 +25,10 @@ sim_conf = {
   },
  
   'network_conf': {
+    'num_edge': 5, # number of user-end (edge/client) groups, previously `num_cl`
     'cache_ttl': 99999,
     'base_server_alloc_frac': .8,
     'edge_server_alloc_frac': .2,
-    'num_edge': 5, # number of user-end (edge/client) groups, previously `num_cl`
   }
 }
 
@@ -139,16 +140,20 @@ if __name__ == '__main__':
     content_request_param = EventParamContentRequest(edge_server, timestamp, user_id, item_id, 1)
     edge_server.event_manager.trigger_event('OnContentRequest', event_param=content_request_param)
 
-    if (row + 1) % _round_at_n_iter == 0:
+    if row % _round_at_n_iter == 0 and row != 0:
+      # round checkpoint routine
+
       _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter}'.ljust(55))
       event_thread_worker_sleep_controller.set()
-      
-      # round checkpoint routine: train recsys/fl model on main thread
+
+      for server in base_server.recurse_nodes():
+        server.block_until_finished()
+
+      # todo: train recsys/fl model on main thread
+      # todo: invoke cache subroutine based on recommended contents
+
       time.sleep(1)
-
       event_thread_worker_sleep_controller.clear()
-
-
 
   print('waiting for processes to finish...')
   for server in base_server.recurse_nodes():
@@ -159,11 +164,11 @@ if __name__ == '__main__':
   print()
   print('sim finished, results:')
 
-
   print()
   print('cache usage statistics')
   for server in base_server.recurse_nodes():
-    print('\t-', server, server.request_log_database, f'| cache usage {server.cache.frac_usage*100:.02f}%')
+    print('\t-', server, server.request_log_database, f'| cache usage {server.cache.frac_usage*100:.02f}%', end='')
+    print(f' | hit ratio {server.states.hit_ratio():.02f}')
 
   if sim_conf['general']['dump_logs']:
     print()
