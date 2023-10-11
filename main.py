@@ -4,18 +4,30 @@ from src.pseudo_database import PandasDataFramePDB
 from src.event import event_thread_worker_sleep_controller
 from src.model.randomized_svd import RandomizedSVD
 # from src.pseudo_timer import PseudoTimer
+import os
+import json
 import time
 import tqdm
 import queue
 import threading
 import numpy as np
 
+CONF_HIST_FILENAME = 'hist.json'
+SAVE_HIST = True
+
 sim_conf = {
+  'conf_name': 'cache_aside_test',
+  'conf_prfx': 'cat',
+  'conf_ts': time.strftime('%Y-%m-%dT%H%M'),
+
   'general': {
     'rand_seed': 1337,
-    'trial_cutoff': 10000,
+    'trial_cutoff': 100000,
     'dump_logs': True,
-    'round_at_n_iter': 1000,
+    'round_at_n_iter': 5000,
+    'log_folder': './log',
+    'filename_template_log_req': 'log_request_{}.csv',
+    'filename_template_log_req_stat': 'log_request_stat_{}.csv',
   },
 
   'loader_conf': {
@@ -159,27 +171,67 @@ if __name__ == '__main__':
   for server in base_server.recurse_nodes():
     server.block_until_finished()
 
+  # ================================================
+  # finished
+
   print()
   print('='*48)
   print()
   print('sim finished, results:')
 
+  sim_conf['results'] = {}
+
   print()
   print('cache usage statistics')
+
+  hit_ratios = []
   for server in base_server.recurse_nodes():
     print('\t-', server, server.request_log_database, f'| cache usage {server.cache.frac_usage*100:.02f}%', end='')
     print(f' | hit ratio {server.states.hit_ratio():.02f}')
+    hit_ratios.append({'server': server.name, 'values': {'hit': server.states.hit_ratio()}})
+
+  sim_conf['results'].update({'hit_ratios': hit_ratios})
 
   if sim_conf['general']['dump_logs']:
     print()
     print('dumping request logs...')
+
+    log_folder = sim_conf['general']['log_folder']
+    if not os.path.exists(log_folder) and not os.path.isdir(log_folder):
+      os.makedirs(log_folder)
+    filename_template_log_req = sim_conf['general']['filename_template_log_req'] 
+    filename_template_log_req_stat = sim_conf['general']['filename_template_log_req_stat'] 
+    filename_template_log_req = sim_conf['conf_ts'] + '_' + filename_template_log_req
+    filename_template_log_req_stat = sim_conf['conf_ts'] + '_' + filename_template_log_req_stat
+    filename_template_log_req = sim_conf['conf_prfx'] + '_' + filename_template_log_req
+    filename_template_log_req_stat = sim_conf['conf_prfx'] + '_' + filename_template_log_req_stat
+    
+    log_files = []
+
     for server in base_server.recurse_nodes():
-      with open('log/req_log_' + server.name + '.csv', 'w') as fo:
+      filename_log_req = filename_template_log_req.format(server.name)
+      filename_log_req_stat = filename_template_log_req_stat.format(server.name)
+      with open(log_folder + '/' + filename_log_req , 'w') as fo:
         server.request_log_database.dump(fo)
-      with open('log/req_stat_log_' + server.name + '.csv', 'w') as fo:
+        log_files.append({'server': server.name, 'type': 'request', 'fp': filename_log_req})
+      with open(log_folder + '/' + filename_log_req_stat, 'w') as fo:
         server.request_status_log_database.dump(fo)
+        log_files.append({'server': server.name, 'type': 'request_stats', 'fp': filename_log_req_stat})
+
+    sim_conf['results'].update({'log_files': log_files})
 
   print()
   print('mermaid graph repr:')
   for edges in base_server.recurse_edges():
     print(edges.graph_repr())
+
+  if SAVE_HIST:
+    if not os.path.exists(CONF_HIST_FILENAME) and \
+      not os.path.isfile(CONF_HIST_FILENAME):
+      with open(CONF_HIST_FILENAME, 'w') as fo:
+        fo.write('[]')
+    with open(CONF_HIST_FILENAME, 'r') as fo:
+      conf_hist = json.load(fo)
+    conf_hist.append(sim_conf)
+    with open(CONF_HIST_FILENAME, 'w') as fo:
+      json.dump(conf_hist, fo, indent=2)

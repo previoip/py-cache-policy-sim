@@ -21,6 +21,8 @@ class ServerStates:
   cache_miss_counter: int = 0
 
   def hit_ratio(self):
+    if self.request_counter == 0:
+      return 0
     return self.cache_hit_counter / self.request_counter
 
 
