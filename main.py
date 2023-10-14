@@ -2,8 +2,7 @@ from src.pseudo_server import Server
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
 from src.event import event_thread_worker_sleep_controller
-from src.model.randomized_svd import RandomizedSVD
-# from src.pseudo_timer import PseudoTimer
+# from src.model.randomized_svd import RandomizedSVD
 import os
 import json
 import time
@@ -22,7 +21,7 @@ sim_conf = {
 
   'general': {
     'rand_seed': 1337,
-    'trial_cutoff': 100000,
+    'trial_cutoff': 1000,
     'dump_logs': True,
     'round_at_n_iter': 5000,
     'log_folder': './log',
@@ -87,14 +86,16 @@ def group_partition(partition, object_list):
 if __name__ == '__main__':
 
   # ================================================
+  # daisy model inits
+
+  from src.model.daisyRec.daisy.utils.config import init_config, init_seed
+  init_seed(sim_conf['general']['rand_seed'], True)
+
+
+  # ================================================
   # bootstrap
   
   from bootstrap import set_default_event, EventParamContentRequest
-
-  np.random.seed(sim_conf['general']['rand_seed'])
-
-
-  # pseudo_timer = PseudoTimer()
 
   data_loader = ExampleDataLoader()
   data_loader.download()
@@ -113,16 +114,16 @@ if __name__ == '__main__':
   base_server.set_timer(lambda: 0)
   base_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['base_server_alloc_frac']
   base_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
-  base_server.setup()
-  set_default_event(base_server.event_manager)
 
   for n in range(sim_conf['network_conf']['num_edge']):
     edge_server = base_server.spawn_child(f'edge_server_{n}')
     edge_server.set_timer(lambda: 0)
     edge_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['edge_server_alloc_frac']
     edge_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
-    edge_server.setup()
-    set_default_event(edge_server.event_manager)
+
+  for server in base_server.recurse_nodes():
+    server.setup()
+    set_default_event(server.event_manager)
 
   user_to_edge_server_map = group_partition(edge_users_partition, base_server.children)
 
@@ -172,7 +173,7 @@ if __name__ == '__main__':
     server.block_until_finished()
 
   # ================================================
-  # finished
+  # finishing
 
   print()
   print('='*48)

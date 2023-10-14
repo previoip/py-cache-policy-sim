@@ -155,3 +155,5 @@ log
 .vscode
 cache
 data
+playground.py
+src/model/daisyRec
