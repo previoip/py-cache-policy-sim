@@ -22,6 +22,11 @@ class ExampleDataLoader:
   archive_url = 'https://files.grouplens.org/datasets/movielens/ml-1m.zip'
   archive_dir = 'data/ex2_1m'
 
+  uid = 'user_id'
+  iid = 'movie_id'
+  inter = 'rating'
+  tid = 'unix_timestamp'
+
   data_dir = {
     'users': {
       'filename': 'users.dat',

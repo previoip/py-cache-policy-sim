@@ -23,6 +23,11 @@ class ExampleDataLoader:
   archive_url = 'https://files.grouplens.org/datasets/movielens/ml-100k.zip'
   archive_dir = 'data/ex2'
 
+  uid = 'user_id'
+  iid = 'movie_id'
+  inter = 'rating'
+  tid = 'unix_timestamp'
+
   data_dir = {
     'users': {
       'filename': 'u.user',
@@ -73,6 +78,7 @@ class ExampleDataLoader:
     },
     'ratings': {
       # 'unix_timestamp': lambda x: np.datetime64('1970-01-01') + np.timedelta64(x, 's'),
+      'unix_timestamp': lambda x: np.int64(x),
       'user_id': lambda x: str(int(x)-1),
       'movie_id': lambda x: str(int(x)-1),
     },

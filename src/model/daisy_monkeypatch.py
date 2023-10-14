@@ -1,5 +1,6 @@
 import os
 import yaml
+from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.model.model_abc import ABCRecSysModel
 from src.model.daisyRec.daisy.model.AbstractRecommender import AbstractRecommender, GeneralRecommender
 from src.model.daisyRec.daisy.model.EASERecommender import EASE
@@ -33,7 +34,7 @@ model_dict = {
 }
 
 
-def init_config(param_dict=None):
+def init_config(data_loder: ExampleDataLoader, param_dict=None):
   config = dict()
 
   current_path = os.path.dirname(os.path.realpath(__file__))
@@ -51,5 +52,10 @@ def init_config(param_dict=None):
 
   if param_dict is not None:
     config.update(param_dict)
+
+  config['UID_NAME'] = data_loder.uid
+  config['IID_NAME'] = data_loder.iid
+  config['INTER_NAME'] = data_loder.inter
+  config['TID_NAME'] = data_loder.tid
 
   return config
