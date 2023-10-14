@@ -10,10 +10,12 @@ from src.model.model_abc import ABCRecSysModel
 
 @dataclass
 class ServerConfig:
-  cache_maxsize: T_SIZE  = 1024
-  cache_maxage: T_TTL    = 0
-  job_queue_maxsize: int = 0
-  model_config: dict     = field(default_factory=dict)
+  cache_maxsize: T_SIZE             = 1024
+  cache_maxage: T_TTL               = 0
+  job_queue_maxsize: int            = 0
+  model_config: dict                = field(default_factory=dict)
+  db_req_log_fieldnames: list       = field(default_factory=lambda: ['timestamp', 'user_id', 'movie_id', 'rating'])
+  db_req_stat_log_fieldnames: list  = field(default_factory=lambda: ['timestamp', 'user_id', 'movie_id', 'rating', 'status'])
 
 @dataclass
 class ServerStates:
@@ -117,12 +119,12 @@ class Server(Node):
     self._request_log_database = TabularPDB(
       f'{self.name}',
       container=list(),
-      field_names=['timestamp', 'user_id', 'item_id', 'rating']
+      field_names=self.cfg.db_req_log_fieldnames
     )
     self._request_status_log_database = TabularPDB(
       f'{self.name}',
       container=list(),
-      field_names=['timestamp', 'user_id', 'item_id', 'status', 'rating']
+      field_names=self.cfg.db_req_stat_log_fieldnames
     )
     self._cache = Cache()
     self._cache.configure(

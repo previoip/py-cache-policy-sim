@@ -4,6 +4,7 @@ from src.pseudo_database import PandasDataFramePDB
 from src.event import event_thread_worker_sleep_controller
 # from src.model.randomized_svd import RandomizedSVD
 from src.model.daisy_monkeypatch import RECSYS_MODEL_ENUM
+from collections import Counter
 import os
 import json
 import time
@@ -28,7 +29,7 @@ sim_conf = {
     'trial_cutoff': 1000,
     'dump_logs': True,
     'dump_configs': True,
-    'round_at_n_iter': 5000,
+    'round_at_n_iter': 500,
     'log_folder': './log',
     'filename_template_log_req': 'log_request_{}.csv',
     'filename_template_log_req_stat': 'log_request_stat_{}.csv',
@@ -92,6 +93,7 @@ def inject_daisy_config(data_loader, daisy_config):
   user_values = data_loader.df_users[user_key].unique()
   daisy_config['user_num'] = len(user_values)
   daisy_config['item_num'] = len(prepare_movie_df(data_loader))
+  daisy_config['epochs'] = 5
 
 
 if __name__ == '__main__':
@@ -111,6 +113,7 @@ if __name__ == '__main__':
 
   item_df = prepare_movie_df(data_loader)
   item_total_size = item_df['sizeof'].sum()
+  item_total_count = len(item_df)
 
   edge_users_partition = prepare_user_partition(data_loader, sim_conf['network_conf']['num_edge'])
 
@@ -190,10 +193,36 @@ if __name__ == '__main__':
       for server in base_server.recurse_nodes():
         server.block_until_finished()
 
-      # todo: train recsys/fl model on main thread
-      # todo: invoke cache subroutine based on recommended contents
+        if server.name == 'base_server':
+          continue
 
-      time.sleep(1)
+        # todo: train recsys/fl model on main thread
+        # todo: invoke cache subroutine based on recommended contents
+
+        ls_request_log_database = server.request_log_database.get_container()
+        if len(ls_request_log_database) == 0:
+          continue
+
+        ls_users = [int(i.user_id) for i in ls_request_log_database]
+
+        train_set, test_set, test_ur, total_train_ur = train_runner.split(server.request_log_database.to_pd())
+
+        recsys_model = server.model
+        recsys_config = server.cfg.model_config
+        recsys_config['train_ur'] = total_train_ur
+        runner = train_runner.get_train_runner(recsys_config)
+        trainer = runner(recsys_model, recsys_config)
+
+        # trainer(recsys_model, train_set)
+
+        to_be_cached_items = list()
+
+        for sel_user_id in ls_users:
+          to_be_cached_items.extend(model.full_rank(sel_user_id))
+
+        to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count * .5))
+        to_be_cached_items = [i[0] for i in to_be_cached_items]
+
       event_thread_worker_sleep_controller.clear()
 
   print('waiting for processes to finish...')
@@ -280,6 +309,6 @@ if __name__ == '__main__':
       conf_hist = json.load(fo)
     conf_hist.append(sim_conf)
     with open(CONF_HIST_FILENAME, 'w') as fo:
-      json.dump(conf_hist, fo, indent=2, default=lambda o: '<not serializable>')
+      json.dump(conf_hist, fo, indent=2, default=lambda o: str(o))
 
   print(base_server.request_log_database.to_pd())

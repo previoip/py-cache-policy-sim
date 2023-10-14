@@ -2,7 +2,7 @@
   {
     "conf_name": "cache_aside_test",
     "conf_prfx": "cat",
-    "conf_ts": "2023-10-14T1820",
+    "conf_ts": "2023-10-14T1900",
     "general": {
       "rand_seed": 1337,
       "recsys_model_name": "mf",
@@ -10,7 +10,7 @@
       "trial_cutoff": 1000,
       "dump_logs": true,
       "dump_configs": true,
-      "round_at_n_iter": 5000,
+      "round_at_n_iter": 500,
       "log_folder": "./log",
       "filename_template_log_req": "log_request_{}.csv",
       "filename_template_log_req_stat": "log_request_stat_{}.csv"
@@ -31,37 +31,37 @@
         {
           "server": "base_server",
           "values": {
-            "hit": 0.3436073059360731
+            "hit": 0.3574610244988864
           }
         },
         {
           "server": "edge_server_0",
           "values": {
-            "hit": 0.018018018018018018
+            "hit": 0.0
           }
         },
         {
           "server": "edge_server_1",
           "values": {
-            "hit": 0.03636363636363636
+            "hit": 0.0
           }
         },
         {
           "server": "edge_server_2",
           "values": {
-            "hit": 0.11428571428571428
+            "hit": 0.10245901639344263
           }
         },
         {
           "server": "edge_server_3",
           "values": {
-            "hit": 0.17043478260869566
+            "hit": 0.13018867924528302
           }
         },
         {
           "server": "edge_server_4",
           "values": {
-            "hit": 0.0
+            "hit": 0.08080808080808081
           }
         }
       ],
@@ -69,62 +69,62 @@
         {
           "server": "base_server",
           "type": "request",
-          "fp": "cat_2023-10-14T1820_log_request_base_server.csv"
+          "fp": "cat_2023-10-14T1900_log_request_base_server.csv"
         },
         {
           "server": "base_server",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1820_log_request_stat_base_server.csv"
+          "fp": "cat_2023-10-14T1900_log_request_stat_base_server.csv"
         },
         {
           "server": "edge_server_0",
           "type": "request",
-          "fp": "cat_2023-10-14T1820_log_request_edge_server_0.csv"
+          "fp": "cat_2023-10-14T1900_log_request_edge_server_0.csv"
         },
         {
           "server": "edge_server_0",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1820_log_request_stat_edge_server_0.csv"
+          "fp": "cat_2023-10-14T1900_log_request_stat_edge_server_0.csv"
         },
         {
           "server": "edge_server_1",
           "type": "request",
-          "fp": "cat_2023-10-14T1820_log_request_edge_server_1.csv"
+          "fp": "cat_2023-10-14T1900_log_request_edge_server_1.csv"
         },
         {
           "server": "edge_server_1",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1820_log_request_stat_edge_server_1.csv"
+          "fp": "cat_2023-10-14T1900_log_request_stat_edge_server_1.csv"
         },
         {
           "server": "edge_server_2",
           "type": "request",
-          "fp": "cat_2023-10-14T1820_log_request_edge_server_2.csv"
+          "fp": "cat_2023-10-14T1900_log_request_edge_server_2.csv"
         },
         {
           "server": "edge_server_2",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1820_log_request_stat_edge_server_2.csv"
+          "fp": "cat_2023-10-14T1900_log_request_stat_edge_server_2.csv"
         },
         {
           "server": "edge_server_3",
           "type": "request",
-          "fp": "cat_2023-10-14T1820_log_request_edge_server_3.csv"
+          "fp": "cat_2023-10-14T1900_log_request_edge_server_3.csv"
         },
         {
           "server": "edge_server_3",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1820_log_request_stat_edge_server_3.csv"
+          "fp": "cat_2023-10-14T1900_log_request_stat_edge_server_3.csv"
         },
         {
           "server": "edge_server_4",
           "type": "request",
-          "fp": "cat_2023-10-14T1820_log_request_edge_server_4.csv"
+          "fp": "cat_2023-10-14T1900_log_request_edge_server_4.csv"
         },
         {
           "server": "edge_server_4",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1820_log_request_stat_edge_server_4.csv"
+          "fp": "cat_2023-10-14T1900_log_request_stat_edge_server_4.csv"
         }
       ],
       "model_configs": [
@@ -175,11 +175,11 @@
               "precision"
             ],
             "factors": 100,
-            "epochs": 20,
+            "epochs": 5,
             "lr": 0.01,
             "reg_1": 0.001,
             "reg_2": 0.001,
-            "logger": "<not serializable>",
+            "logger": "<Logger daisy_log (DEBUG)>",
             "user_num": 943,
             "item_num": 1682
           }
@@ -231,13 +231,16 @@
               "precision"
             ],
             "factors": 100,
-            "epochs": 20,
+            "epochs": 5,
             "lr": 0.01,
             "reg_1": 0.001,
             "reg_2": 0.001,
-            "logger": "<not serializable>",
+            "logger": "<Logger daisy_log (DEBUG)>",
             "user_num": 943,
-            "item_num": 1682
+            "item_num": 1682,
+            "train_ur": {
+              "593": "{514, 99, 291, 743, 13, 14, 49, 18, 275, 244, 180, 221, 126, 987, 220, 125, 318}"
+            }
           }
         },
         {
@@ -287,13 +290,16 @@
               "precision"
             ],
             "factors": 100,
-            "epochs": 20,
+            "epochs": 5,
             "lr": 0.01,
             "reg_1": 0.001,
             "reg_2": 0.001,
-            "logger": "<not serializable>",
+            "logger": "<Logger daisy_log (DEBUG)>",
             "user_num": 943,
-            "item_num": 1682
+            "item_num": 1682,
+            "train_ur": {
+              "118": "{6, 1033, 10, 21, 545, 49, 55, 1085, 63, 81, 594, 596, 88, 92, 95, 99, 104, 108, 627, 116, 120, 124, 1152, 654, 167, 173, 1201, 180, 181, 187, 193, 716, 717, 209, 212, 1243, 221, 740, 741, 234, 1258, 236, 1260, 1259, 249, 761, 251, 253, 254, 256, 273, 274, 275, 276, 281, 285, 286, 297, 299, 812, 822, 824, 825, 826, 828, 830, 321, 322, 865, 404, 411, 923, 929, 454, 457, 976, 981, 471, 472, 985, 474, 485, 491, 1015, 510}"
+            }
           }
         },
         {
@@ -343,13 +349,17 @@
               "precision"
             ],
             "factors": 100,
-            "epochs": 20,
+            "epochs": 5,
             "lr": 0.01,
             "reg_1": 0.001,
             "reg_2": 0.001,
-            "logger": "<not serializable>",
+            "logger": "<Logger daisy_log (DEBUG)>",
             "user_num": 943,
-            "item_num": 1682
+            "item_num": 1682,
+            "train_ur": {
+              "639": "{384, 769, 1, 3, 133, 390, 10, 11, 789, 662, 21, 539, 160, 32, 801, 37, 549, 168, 169, 41, 427, 940, 683, 174, 46, 1072, 179, 692, 181, 54, 55, 52, 565, 567, 188, 317, 61, 63, 65, 194, 579, 67, 69, 577, 200, 201, 203, 460, 78, 719, 80, 208, 84, 213, 473, 90, 91, 95, 225, 356, 230, 232, 238, 495, 372, 760, 381}",
+              "22": "{0, 641, 131, 517, 6, 7, 521, 651, 12, 13, 526, 143, 18, 274, 404, 918, 407, 150, 153, 282, 413, 31, 545, 169, 170, 171, 173, 174, 175, 432, 49, 180, 54, 55, 182, 184, 58, 960, 704, 322, 709, 712, 201, 462, 78, 208, 82, 596, 212, 213, 471, 88, 602, 478, 223, 95, 99, 356, 227, 229, 101, 233, 234, 108, 237, 1005, 366, 115, 503, 249, 123, 511}"
+            }
           }
         },
         {
@@ -399,13 +409,19 @@
               "precision"
             ],
             "factors": 100,
-            "epochs": 20,
+            "epochs": 5,
             "lr": 0.01,
             "reg_1": 0.001,
             "reg_2": 0.001,
-            "logger": "<not serializable>",
+            "logger": "<Logger daisy_log (DEBUG)>",
             "user_num": 943,
-            "item_num": 1682
+            "item_num": 1682,
+            "train_ur": {
+              "258": "{771, 356, 199, 297, 107, 172, 175, 1073, 209, 116, 404, 184, 927, 285, 254, 287}",
+              "850": "{289, 741, 294, 716, 844, 686, 110, 814, 823, 146, 404, 1013, 695, 472, 283, 120, 543}",
+              "711": "{3, 1039, 1052, 1054, 37, 552, 41, 559, 49, 567, 58, 59, 60, 65, 68, 70, 71, 584, 72, 583, 78, 81, 82, 87, 94, 95, 96, 98, 621, 622, 135, 140, 654, 659, 661, 171, 172, 173, 176, 691, 180, 190, 194, 1219, 195, 201, 715, 209, 214, 728, 730, 219, 731, 738, 227, 229, 233, 745, 746, 237, 775, 784, 811, 364, 377, 384, 391, 392, 401, 403, 416, 417, 418, 420, 422, 940, 430, 431, 945, 948, 1468, 968, 461, 1502, 485, 494, 497, 505, 509}",
+              "275": "{0, 257, 256, 259, 6, 272, 146, 275, 918, 407, 150, 283, 287, 545, 546, 293, 677, 297, 299, 180, 695, 321, 322, 323, 324, 327, 590, 470, 99, 357, 108, 627, 116, 245, 248, 122, 507, 126}"
+            }
           }
         },
         {
@@ -455,13 +471,16 @@
               "precision"
             ],
             "factors": 100,
-            "epochs": 20,
+            "epochs": 5,
             "lr": 0.01,
             "reg_1": 0.001,
             "reg_2": 0.001,
-            "logger": "<not serializable>",
+            "logger": "<Logger daisy_log (DEBUG)>",
             "user_num": 943,
-            "item_num": 1682
+            "item_num": 1682,
+            "train_ur": {
+              "912": "{3}"
+            }
           }
         }
       ]
