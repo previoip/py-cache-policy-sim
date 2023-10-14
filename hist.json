@@ -2,263 +2,10 @@
   {
     "conf_name": "cache_aside_test",
     "conf_prfx": "cat",
-    "conf_ts": "2023-10-11T2138",
+    "conf_ts": "2023-10-14T1554",
     "general": {
       "rand_seed": 1337,
-      "trial_cutoff": 100000,
-      "dump_logs": true,
-      "round_at_n_iter": 5000,
-      "log_folder": "./log",
-      "filename_template_log_req": "log_request_{}.csv",
-      "filename_template_log_req_stat": "log_request_stat_{}.csv"
-    },
-    "loader_conf": {
-      "item_key": "movie_id",
-      "user_key": "user_id",
-      "value_key": "rating"
-    },
-    "network_conf": {
-      "num_edge": 5,
-      "cache_ttl": 99999,
-      "base_server_alloc_frac": 0.8,
-      "edge_server_alloc_frac": 0.2
-    },
-    "results": {
-      "hit_ratios": [
-        {
-          "server": "base_server",
-          "values": {
-            "hit": 0.9421405158899815
-          }
-        },
-        {
-          "server": "edge_server_0",
-          "values": {
-            "hit": 0.45818281335522715
-          }
-        },
-        {
-          "server": "edge_server_1",
-          "values": {
-            "hit": 0.4156038647342995
-          }
-        },
-        {
-          "server": "edge_server_2",
-          "values": {
-            "hit": 0.470282832278481
-          }
-        },
-        {
-          "server": "edge_server_3",
-          "values": {
-            "hit": 0.4130891624136896
-          }
-        },
-        {
-          "server": "edge_server_4",
-          "values": {
-            "hit": 0.43818443804034585
-          }
-        }
-      ],
-      "log_files": [
-        {
-          "server": "base_server",
-          "type": "request",
-          "fp": "cat_2023-10-11T2138_log_request_base_server.csv"
-        },
-        {
-          "server": "base_server",
-          "type": "request_stats",
-          "fp": "cat_2023-10-11T2138_log_request_stat_base_server.csv"
-        },
-        {
-          "server": "edge_server_0",
-          "type": "request",
-          "fp": "cat_2023-10-11T2138_log_request_edge_server_0.csv"
-        },
-        {
-          "server": "edge_server_0",
-          "type": "request_stats",
-          "fp": "cat_2023-10-11T2138_log_request_stat_edge_server_0.csv"
-        },
-        {
-          "server": "edge_server_1",
-          "type": "request",
-          "fp": "cat_2023-10-11T2138_log_request_edge_server_1.csv"
-        },
-        {
-          "server": "edge_server_1",
-          "type": "request_stats",
-          "fp": "cat_2023-10-11T2138_log_request_stat_edge_server_1.csv"
-        },
-        {
-          "server": "edge_server_2",
-          "type": "request",
-          "fp": "cat_2023-10-11T2138_log_request_edge_server_2.csv"
-        },
-        {
-          "server": "edge_server_2",
-          "type": "request_stats",
-          "fp": "cat_2023-10-11T2138_log_request_stat_edge_server_2.csv"
-        },
-        {
-          "server": "edge_server_3",
-          "type": "request",
-          "fp": "cat_2023-10-11T2138_log_request_edge_server_3.csv"
-        },
-        {
-          "server": "edge_server_3",
-          "type": "request_stats",
-          "fp": "cat_2023-10-11T2138_log_request_stat_edge_server_3.csv"
-        },
-        {
-          "server": "edge_server_4",
-          "type": "request",
-          "fp": "cat_2023-10-11T2138_log_request_edge_server_4.csv"
-        },
-        {
-          "server": "edge_server_4",
-          "type": "request_stats",
-          "fp": "cat_2023-10-11T2138_log_request_stat_edge_server_4.csv"
-        }
-      ]
-    }
-  },
-  {
-    "conf_name": "cache_aside_test",
-    "conf_prfx": "cat",
-    "conf_ts": "2023-10-14T1429",
-    "general": {
-      "rand_seed": 1337,
-      "trial_cutoff": 100000,
-      "dump_logs": true,
-      "round_at_n_iter": 5000,
-      "log_folder": "./log",
-      "filename_template_log_req": "log_request_{}.csv",
-      "filename_template_log_req_stat": "log_request_stat_{}.csv"
-    },
-    "loader_conf": {
-      "item_key": "movie_id",
-      "user_key": "user_id",
-      "value_key": "rating"
-    },
-    "network_conf": {
-      "num_edge": 5,
-      "cache_ttl": 99999,
-      "base_server_alloc_frac": 0.8,
-      "edge_server_alloc_frac": 0.2
-    },
-    "results": {
-      "hit_ratios": [
-        {
-          "server": "base_server",
-          "values": {
-            "hit": 0.9421291759465479
-          }
-        },
-        {
-          "server": "edge_server_0",
-          "values": {
-            "hit": 0.45818281335522715
-          }
-        },
-        {
-          "server": "edge_server_1",
-          "values": {
-            "hit": 0.41555555555555557
-          }
-        },
-        {
-          "server": "edge_server_2",
-          "values": {
-            "hit": 0.47067840189873417
-          }
-        },
-        {
-          "server": "edge_server_3",
-          "values": {
-            "hit": 0.4133393375362754
-          }
-        },
-        {
-          "server": "edge_server_4",
-          "values": {
-            "hit": 0.43813640730067244
-          }
-        }
-      ],
-      "log_files": [
-        {
-          "server": "base_server",
-          "type": "request",
-          "fp": "cat_2023-10-14T1429_log_request_base_server.csv"
-        },
-        {
-          "server": "base_server",
-          "type": "request_stats",
-          "fp": "cat_2023-10-14T1429_log_request_stat_base_server.csv"
-        },
-        {
-          "server": "edge_server_0",
-          "type": "request",
-          "fp": "cat_2023-10-14T1429_log_request_edge_server_0.csv"
-        },
-        {
-          "server": "edge_server_0",
-          "type": "request_stats",
-          "fp": "cat_2023-10-14T1429_log_request_stat_edge_server_0.csv"
-        },
-        {
-          "server": "edge_server_1",
-          "type": "request",
-          "fp": "cat_2023-10-14T1429_log_request_edge_server_1.csv"
-        },
-        {
-          "server": "edge_server_1",
-          "type": "request_stats",
-          "fp": "cat_2023-10-14T1429_log_request_stat_edge_server_1.csv"
-        },
-        {
-          "server": "edge_server_2",
-          "type": "request",
-          "fp": "cat_2023-10-14T1429_log_request_edge_server_2.csv"
-        },
-        {
-          "server": "edge_server_2",
-          "type": "request_stats",
-          "fp": "cat_2023-10-14T1429_log_request_stat_edge_server_2.csv"
-        },
-        {
-          "server": "edge_server_3",
-          "type": "request",
-          "fp": "cat_2023-10-14T1429_log_request_edge_server_3.csv"
-        },
-        {
-          "server": "edge_server_3",
-          "type": "request_stats",
-          "fp": "cat_2023-10-14T1429_log_request_stat_edge_server_3.csv"
-        },
-        {
-          "server": "edge_server_4",
-          "type": "request",
-          "fp": "cat_2023-10-14T1429_log_request_edge_server_4.csv"
-        },
-        {
-          "server": "edge_server_4",
-          "type": "request_stats",
-          "fp": "cat_2023-10-14T1429_log_request_stat_edge_server_4.csv"
-        }
-      ]
-    }
-  },
-  {
-    "conf_name": "cache_aside_test",
-    "conf_prfx": "cat",
-    "conf_ts": "2023-10-14T1512",
-    "general": {
-      "rand_seed": 1337,
+      "recsys_model": "mf",
       "trial_cutoff": 1000,
       "dump_logs": true,
       "round_at_n_iter": 5000,
@@ -277,42 +24,94 @@
       "base_server_alloc_frac": 0.8,
       "edge_server_alloc_frac": 0.2
     },
+    "daisy_config": {
+      "gpu": "0",
+      "seed": 1337,
+      "reproducibility": true,
+      "state": null,
+      "optimization_metric": "ndcg",
+      "hyperopt_trail": 30,
+      "tune_testset": false,
+      "tune_pack": "{}",
+      "algo_name": "mf",
+      "val_method": "tsbr",
+      "test_method": "tsbr",
+      "fold_num": 1,
+      "val_size": 0.1,
+      "test_size": 0.2,
+      "topk": 50,
+      "cand_num": 1000,
+      "sample_method": "uniform",
+      "sample_ratio": 0,
+      "num_ng": 4,
+      "batch_size": 256,
+      "loss_type": "BPR",
+      "init_method": "default",
+      "optimizer": "default",
+      "early_stop": true,
+      "data_path": "data/",
+      "res_path": null,
+      "dataset": "ml-100k",
+      "prepro": "10filter",
+      "level": "ui",
+      "UID_NAME": "user_id",
+      "IID_NAME": "movie_id",
+      "INTER_NAME": "rating",
+      "TID_NAME": "unix_timestamp",
+      "binary_inter": true,
+      "positive_threshold": null,
+      "metrics": [
+        "recall",
+        "mrr",
+        "ndcg",
+        "hit",
+        "precision"
+      ],
+      "factors": 100,
+      "epochs": 20,
+      "lr": 0.01,
+      "reg_1": 0.001,
+      "reg_2": 0.001,
+      "logger": null,
+      "user_num": 943,
+      "item_num": 1682
+    },
     "results": {
       "hit_ratios": [
         {
           "server": "base_server",
           "values": {
-            "hit": 0.19155844155844157
+            "hit": 0.3722707423580786
           }
         },
         {
           "server": "edge_server_0",
           "values": {
-            "hit": 0.07142857142857142
+            "hit": 0.0
           }
         },
         {
           "server": "edge_server_1",
           "values": {
-            "hit": 0.11777777777777777
+            "hit": 0.1724137931034483
           }
         },
         {
           "server": "edge_server_2",
           "values": {
-            "hit": 0.007575757575757576
+            "hit": 0.013333333333333334
           }
         },
         {
           "server": "edge_server_3",
           "values": {
-            "hit": 0.05847953216374269
+            "hit": 0.06443914081145585
           }
         },
         {
           "server": "edge_server_4",
           "values": {
-            "hit": 0.03680981595092025
+            "hit": 0.047244094488188976
           }
         }
       ],
@@ -320,62 +119,62 @@
         {
           "server": "base_server",
           "type": "request",
-          "fp": "cat_2023-10-14T1512_log_request_base_server.csv"
+          "fp": "cat_2023-10-14T1554_log_request_base_server.csv"
         },
         {
           "server": "base_server",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1512_log_request_stat_base_server.csv"
+          "fp": "cat_2023-10-14T1554_log_request_stat_base_server.csv"
         },
         {
           "server": "edge_server_0",
           "type": "request",
-          "fp": "cat_2023-10-14T1512_log_request_edge_server_0.csv"
+          "fp": "cat_2023-10-14T1554_log_request_edge_server_0.csv"
         },
         {
           "server": "edge_server_0",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1512_log_request_stat_edge_server_0.csv"
+          "fp": "cat_2023-10-14T1554_log_request_stat_edge_server_0.csv"
         },
         {
           "server": "edge_server_1",
           "type": "request",
-          "fp": "cat_2023-10-14T1512_log_request_edge_server_1.csv"
+          "fp": "cat_2023-10-14T1554_log_request_edge_server_1.csv"
         },
         {
           "server": "edge_server_1",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1512_log_request_stat_edge_server_1.csv"
+          "fp": "cat_2023-10-14T1554_log_request_stat_edge_server_1.csv"
         },
         {
           "server": "edge_server_2",
           "type": "request",
-          "fp": "cat_2023-10-14T1512_log_request_edge_server_2.csv"
+          "fp": "cat_2023-10-14T1554_log_request_edge_server_2.csv"
         },
         {
           "server": "edge_server_2",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1512_log_request_stat_edge_server_2.csv"
+          "fp": "cat_2023-10-14T1554_log_request_stat_edge_server_2.csv"
         },
         {
           "server": "edge_server_3",
           "type": "request",
-          "fp": "cat_2023-10-14T1512_log_request_edge_server_3.csv"
+          "fp": "cat_2023-10-14T1554_log_request_edge_server_3.csv"
         },
         {
           "server": "edge_server_3",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1512_log_request_stat_edge_server_3.csv"
+          "fp": "cat_2023-10-14T1554_log_request_stat_edge_server_3.csv"
         },
         {
           "server": "edge_server_4",
           "type": "request",
-          "fp": "cat_2023-10-14T1512_log_request_edge_server_4.csv"
+          "fp": "cat_2023-10-14T1554_log_request_edge_server_4.csv"
         },
         {
           "server": "edge_server_4",
           "type": "request_stats",
-          "fp": "cat_2023-10-14T1512_log_request_stat_edge_server_4.csv"
+          "fp": "cat_2023-10-14T1554_log_request_stat_edge_server_4.csv"
         }
       ]
     }

@@ -3,6 +3,7 @@ from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
 from src.event import event_thread_worker_sleep_controller
 # from src.model.randomized_svd import RandomizedSVD
+from src.model.daisy_monkeypatch import RECSYS_MODEL_ENUM
 import os
 import json
 import time
@@ -13,6 +14,7 @@ import numpy as np
 
 CONF_HIST_FILENAME = 'hist.json'
 SAVE_HIST = True
+PRUNE_HIST = True
 
 sim_conf = {
   'conf_name': 'cache_aside_test',
@@ -21,7 +23,8 @@ sim_conf = {
 
   'general': {
     'rand_seed': 1337,
-    'trial_cutoff': 1000,
+    'recsys_model_name': RECSYS_MODEL_ENUM.mf,
+    'trial_cutoff': 10000,
     'dump_logs': True,
     'round_at_n_iter': 5000,
     'log_folder': './log',
@@ -82,15 +85,14 @@ def group_partition(partition, object_list):
       ret[item] = object_list[n]
   return ret
 
+def inject_daisy_config(data_loader, daisy_config):
+  user_key = sim_conf['loader_conf']['user_key']
+  user_values = data_loader.df_users[user_key].unique()
+  daisy_config['user_num'] = len(user_values)
+  daisy_config['item_num'] = len(prepare_movie_df(data_loader))
+
 
 if __name__ == '__main__':
-
-  # ================================================
-  # daisy model inits
-
-  from src.model.daisyRec.daisy.utils.config import init_config, init_seed
-  init_seed(sim_conf['general']['rand_seed'], True)
-
 
   # ================================================
   # bootstrap
@@ -101,10 +103,35 @@ if __name__ == '__main__':
   data_loader.download()
   data_loader.load()
 
+  sim_conf['loader_conf']['user_key'] = data_loader.uid
+  sim_conf['loader_conf']['item_key'] = data_loader.iid
+  sim_conf['loader_conf']['value_key'] = data_loader.inter
+
   item_df = prepare_movie_df(data_loader)
   item_total_size = item_df['sizeof'].sum()
 
   edge_users_partition = prepare_user_partition(data_loader, sim_conf['network_conf']['num_edge'])
+
+  # ================================================
+  # daisy model inits
+
+  from src.model.daisyRec.daisy.utils.config import init_seed
+  from src.model.daisy_monkeypatch import init_config, build_model_constructor
+
+  daisy_config = init_config(data_loader, algo_name=sim_conf['general']['recsys_model_name'])
+
+  daisy_config['seed'] = sim_conf['general']['rand_seed']
+  init_seed(daisy_config['seed'], True)
+
+  inject_daisy_config(data_loader, daisy_config)
+
+  model_constructor = build_model_constructor(daisy_config)
+
+  model = model_constructor()
+  print(model)
+  exit()
+
+  sim_conf.update({'daisy_config': daisy_config})
 
   # ================================================
   # server sim setup
@@ -112,12 +139,14 @@ if __name__ == '__main__':
   base_server = Server('base_server')
   base_server.set_database(PandasDataFramePDB('movie_db', item_df))
   base_server.set_timer(lambda: 0)
+  base_server.set_model(model_constructor())
   base_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['base_server_alloc_frac']
   base_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
 
   for n in range(sim_conf['network_conf']['num_edge']):
     edge_server = base_server.spawn_child(f'edge_server_{n}')
     edge_server.set_timer(lambda: 0)
+    edge_server.set_model(model_constructor())
     edge_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['edge_server_alloc_frac']
     edge_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
 
@@ -225,6 +254,12 @@ if __name__ == '__main__':
   print('mermaid graph repr:')
   for edges in base_server.recurse_edges():
     print(edges.graph_repr())
+
+  if PRUNE_HIST:
+    if os.path.exists(CONF_HIST_FILENAME) and \
+      os.path.isfile(CONF_HIST_FILENAME):
+      with open(CONF_HIST_FILENAME, 'w') as fo:
+        fo.write('[]')
 
   if SAVE_HIST:
     if not os.path.exists(CONF_HIST_FILENAME) and \
