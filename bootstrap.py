@@ -63,7 +63,9 @@ def handle_request(ctx: EventContext, event_param):
       # propagate/delegate to parent server
       server.parent.event_manager.trigger_event('OnContentRequest', event_param=event_param)
 
-  server.event_manager.trigger_event('SubCache', event_param=event_param)
+  if not server.cfg.flag_suppress_cache_on_req:
+    server.event_manager.trigger_event('SubCache', event_param=event_param)
+
   ctx.event_target.states.request_counter += 1
   return 0
 

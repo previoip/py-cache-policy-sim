@@ -5,6 +5,7 @@ from src.event import event_thread_worker_sleep_controller
 # from src.model.randomized_svd import RandomizedSVD
 from src.model.daisy_monkeypatch import RECSYS_MODEL_ENUM
 from collections import Counter
+from enum import Enum, auto
 import os
 import json
 import time
@@ -15,7 +16,13 @@ import numpy as np
 
 CONF_HIST_FILENAME = 'hist.json'
 SAVE_HIST = True
-PRUNE_HIST = True
+PRUNE_HIST = False
+
+class SIM_MODE_ENUM(Enum):
+  cache_aside = auto()
+  centralized = auto()
+  localized = auto()
+  federated = auto()
 
 sim_conf = {
   'conf_name': 'cache_aside_test',
@@ -24,12 +31,13 @@ sim_conf = {
 
   'general': {
     'rand_seed': 1337,
-    'recsys_model_name': RECSYS_MODEL_ENUM.mf,
+    'mode': SIM_MODE_ENUM.localized,
+    'recsys_model_name': RECSYS_MODEL_ENUM.fm,
     'recsys_model_topk_frac': .5,
-    'trial_cutoff': 1000,
+    'trial_cutoff': 100_000,
     'dump_logs': True,
     'dump_configs': True,
-    'round_at_n_iter': 500,
+    'round_at_n_iter': 20_000,
     'log_folder': './log',
     'filename_template_log_req': 'log_request_{}.csv',
     'filename_template_log_req_stat': 'log_request_stat_{}.csv',
@@ -93,10 +101,19 @@ def inject_daisy_config(data_loader, daisy_config):
   user_values = data_loader.df_users[user_key].unique()
   daisy_config['user_num'] = len(user_values)
   daisy_config['item_num'] = len(prepare_movie_df(data_loader))
-  daisy_config['epochs'] = 5
 
+def override_daisy_config(daisy_config):
+  daisy_config.update({
+    "test_size": 0.0,
+    'epochs': 5,
+    # 'topk': int(len(item_df) * sim_conf['general']['recsys_model_topk_frac'])
+  })
+  
+  
 
 if __name__ == '__main__':
+
+  sim_mode = sim_conf['general']['mode']
 
   # ================================================
   # bootstrap
@@ -129,7 +146,7 @@ if __name__ == '__main__':
   init_seed(daisy_config['seed'], True)
 
   inject_daisy_config(data_loader, daisy_config)
-  daisy_config['topk'] = int(len(item_df) * sim_conf['general']['recsys_model_topk_frac'])
+  override_daisy_config(daisy_config)
 
   model_constructor, train_runner = build_model_constructor(daisy_config)
 
@@ -155,6 +172,12 @@ if __name__ == '__main__':
   for server in base_server.recurse_nodes():
     server.setup()
     set_default_event(server.event_manager)
+
+    if server.name == 'base_server':
+      continue
+
+    if sim_mode != SIM_MODE_ENUM.cache_aside:
+      server.cfg.flag_suppress_cache_on_req = True
 
   user_to_edge_server_map = group_partition(edge_users_partition, base_server.children)
 
@@ -184,7 +207,10 @@ if __name__ == '__main__':
     content_request_param = EventParamContentRequest(edge_server, timestamp, user_id, item_id, value, 1)
     edge_server.event_manager.trigger_event('OnContentRequest', event_param=content_request_param)
 
-    if row % _round_at_n_iter == 0 and row != 0:
+    if sim_mode == SIM_MODE_ENUM.cache_aside:
+      pass
+
+    elif row % _round_at_n_iter == 0 and row != 0:
       # round checkpoint routine
 
       _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter}'.ljust(55))
@@ -196,14 +222,13 @@ if __name__ == '__main__':
         if server.name == 'base_server':
           continue
 
-        # todo: train recsys/fl model on main thread
-        # todo: invoke cache subroutine based on recommended contents
+        _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter} server {server.name}'.ljust(55))
 
         ls_request_log_database = server.request_log_database.get_container()
         if len(ls_request_log_database) == 0:
           continue
 
-        ls_users = [int(i.user_id) for i in ls_request_log_database]
+        ls_users = list(set([int(i.user_id) for i in ls_request_log_database]))
 
         train_set, test_set, test_ur, total_train_ur = train_runner.split(server.request_log_database.to_pd())
 
@@ -213,19 +238,33 @@ if __name__ == '__main__':
         runner = train_runner.get_train_runner(recsys_config)
         trainer = runner(recsys_model, recsys_config)
 
-        # trainer(recsys_model, train_set)
+        trainer(recsys_model, train_set)
+
+        if sim_mode == SIM_MODE_ENUM.federated:
+          # todo
+          ...
 
         to_be_cached_items = list()
 
         for sel_user_id in ls_users:
-          to_be_cached_items.extend(model.full_rank(sel_user_id))
+          to_be_cached_items.extend(recsys_model.full_rank(sel_user_id))
 
         to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count * .5))
         to_be_cached_items = [i[0] for i in to_be_cached_items]
+        for _item_id in to_be_cached_items:
+          cache_param = EventParamContentRequest(
+              client=server,
+              timestamp=timestamp,
+              user_id=user_id,
+              item_id=_item_id,
+              rating=None,
+              item_size=1,
+          )
+          server.event_manager.trigger_event('SubCache', event_param=cache_param)
 
       event_thread_worker_sleep_controller.clear()
 
-  print('waiting for processes to finish...')
+  print('waiting for all processes to finish...')
   for server in base_server.recurse_nodes():
     server.block_until_finished()
 
@@ -287,7 +326,8 @@ if __name__ == '__main__':
     model_configs = []
     for server in base_server.recurse_nodes():
       model_configs.append({'server': server.name, 'type': 'daisy_config/json', 'value': server.cfg.model_config})
-    sim_conf['results'].update({'model_configs': model_configs})
+    if sim_mode != SIM_MODE_ENUM.cache_aside:
+      sim_conf['results'].update({'model_configs': model_configs})
 
   print()
   print('mermaid graph repr:')
@@ -310,5 +350,3 @@ if __name__ == '__main__':
     conf_hist.append(sim_conf)
     with open(CONF_HIST_FILENAME, 'w') as fo:
       json.dump(conf_hist, fo, indent=2, default=lambda o: str(o))
-
-  print(base_server.request_log_database.to_pd())

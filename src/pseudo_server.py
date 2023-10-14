@@ -16,6 +16,8 @@ class ServerConfig:
   model_config: dict                = field(default_factory=dict)
   db_req_log_fieldnames: list       = field(default_factory=lambda: ['timestamp', 'user_id', 'movie_id', 'rating'])
   db_req_stat_log_fieldnames: list  = field(default_factory=lambda: ['timestamp', 'user_id', 'movie_id', 'rating', 'status'])
+  flag_suppress_cache_on_req: bool  = False
+
 
 @dataclass
 class ServerStates:
