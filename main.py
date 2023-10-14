@@ -24,8 +24,10 @@ sim_conf = {
   'general': {
     'rand_seed': 1337,
     'recsys_model_name': RECSYS_MODEL_ENUM.mf,
-    'trial_cutoff': 10000,
+    'recsys_model_topk_frac': .5,
+    'trial_cutoff': 1000,
     'dump_logs': True,
+    'dump_configs': True,
     'round_at_n_iter': 5000,
     'log_folder': './log',
     'filename_template_log_req': 'log_request_{}.csv',
@@ -124,14 +126,9 @@ if __name__ == '__main__':
   init_seed(daisy_config['seed'], True)
 
   inject_daisy_config(data_loader, daisy_config)
+  daisy_config['topk'] = int(len(item_df) * sim_conf['general']['recsys_model_topk_frac'])
 
-  model_constructor = build_model_constructor(daisy_config)
-
-  model = model_constructor()
-  print(model)
-  exit()
-
-  sim_conf.update({'daisy_config': daisy_config})
+  model_constructor, train_runner = build_model_constructor(daisy_config)
 
   # ================================================
   # server sim setup
@@ -140,6 +137,7 @@ if __name__ == '__main__':
   base_server.set_database(PandasDataFramePDB('movie_db', item_df))
   base_server.set_timer(lambda: 0)
   base_server.set_model(model_constructor())
+  base_server.cfg.model_config = daisy_config.copy()
   base_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['base_server_alloc_frac']
   base_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
 
@@ -147,6 +145,7 @@ if __name__ == '__main__':
     edge_server = base_server.spawn_child(f'edge_server_{n}')
     edge_server.set_timer(lambda: 0)
     edge_server.set_model(model_constructor())
+    edge_server.cfg.model_config = daisy_config.copy()
     edge_server.cfg.cache_maxsize = item_total_size * sim_conf['network_conf']['edge_server_alloc_frac']
     edge_server.cfg.cache_maxage = sim_conf['network_conf']['cache_ttl']
 
@@ -179,7 +178,7 @@ if __name__ == '__main__':
     _tqdm_it_request.set_description(f'performing request: user_id:{user_id} item_id:{item_id}'.ljust(55))
 
     edge_server = user_to_edge_server_map.get(user_id)
-    content_request_param = EventParamContentRequest(edge_server, timestamp, user_id, item_id, 1)
+    content_request_param = EventParamContentRequest(edge_server, timestamp, user_id, item_id, value, 1)
     edge_server.event_manager.trigger_event('OnContentRequest', event_param=content_request_param)
 
     if row % _round_at_n_iter == 0 and row != 0:
@@ -250,6 +249,17 @@ if __name__ == '__main__':
 
     sim_conf['results'].update({'log_files': log_files})
 
+
+  if sim_conf['general']['dump_configs']:
+
+    print()
+    print('dumping server configs...')
+
+    model_configs = []
+    for server in base_server.recurse_nodes():
+      model_configs.append({'server': server.name, 'type': 'daisy_config/json', 'value': server.cfg.model_config})
+    sim_conf['results'].update({'model_configs': model_configs})
+
   print()
   print('mermaid graph repr:')
   for edges in base_server.recurse_edges():
@@ -270,4 +280,6 @@ if __name__ == '__main__':
       conf_hist = json.load(fo)
     conf_hist.append(sim_conf)
     with open(CONF_HIST_FILENAME, 'w') as fo:
-      json.dump(conf_hist, fo, indent=2)
+      json.dump(conf_hist, fo, indent=2, default=lambda o: '<not serializable>')
+
+  print(base_server.request_log_database.to_pd())

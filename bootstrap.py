@@ -8,6 +8,7 @@ class EventParamContentRequest(t.NamedTuple):
   timestamp: int
   user_id: t.Any
   item_id: int
+  rating: t.Union[int, float]
   item_size: T_SIZE
 
 
@@ -16,6 +17,7 @@ class EventParamContentRequestStatus(t.NamedTuple):
   timestamp: int
   user_id: t.Any
   item_id: int
+  rating: t.Union[int, float]
   item_size: T_SIZE
   status: str
 
@@ -91,7 +93,8 @@ def handle_log_request(ctx: EventContext, event_param):
   ctx.event_target.request_log_database.add_entry(
     event_param.timestamp,
     event_param.user_id,
-    event_param.item_id
+    event_param.item_id,
+    event_param.rating
   )
   return 0
 
@@ -106,6 +109,7 @@ def handle_log_request_status(ctx: EventContext, event_param):
     event_param.timestamp,
     event_param.user_id,
     event_param.item_id,
+    event_param.rating,
     event_param.status
   )
   return 0

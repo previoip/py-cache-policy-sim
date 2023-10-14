@@ -77,6 +77,7 @@ class ListPDB(ABCPseudoDatabase):
 
   def __init__(self, name, container: list=list()):
     super().__init__(name=name, container=container)
+    self.dtypes = 'int64'
 
   def _has(self, key: t.Hashable):
     return key < len(self._container)
@@ -86,6 +87,11 @@ class ListPDB(ABCPseudoDatabase):
 
   def _add(self, key: t.Hashable, entry: t.Any):
     return self._container.append(entry)
+
+  def to_pd(self):
+    if hasattr(self, 'field_names'):
+      return DataFrame(data=self._container, columns=self.field_names, dtype=self.dtypes)
+    return DataFrame(data=self._container, dtype=self.dtypes)
 
   def dump(self, fp: t.TextIO, delim: str=';'):
     if hasattr(self, 'field_names'):

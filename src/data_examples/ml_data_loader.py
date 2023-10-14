@@ -74,16 +74,16 @@ class ExampleDataLoader:
 
   data_converters = {
     'users': {
-      'user_id': lambda x: str(int(x)-1)
+      'user_id': lambda x: int(x)-1
     },
     'ratings': {
       # 'unix_timestamp': lambda x: np.datetime64('1970-01-01') + np.timedelta64(x, 's'),
       'unix_timestamp': lambda x: np.int64(x),
-      'user_id': lambda x: str(int(x)-1),
-      'movie_id': lambda x: str(int(x)-1),
+      'user_id': lambda x: int(x)-1,
+      'movie_id': lambda x: int(x)-1,
     },
     'movies': {
-      'movie_id': lambda x: str(int(x)-1),
+      'movie_id': lambda x: int(x)-1,
       'release_date': _date_parser
     }
   }

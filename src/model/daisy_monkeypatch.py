@@ -266,7 +266,8 @@ class _ModelTrainRunner:
       model.fit(train_loader)
     return wrapper
 
-  def get_train_runner(self, algo_name):
+  def get_train_runner(self, daisy_config):
+    algo_name = daisy_config['algo_name'].lower()
 
     if algo_name in ['itemknn', 'puresvd', 'slim', 'mostpop', 'ease']:
       return self._train_preset1
@@ -293,6 +294,5 @@ def build_model_constructor(daisy_config):
     raise ValueError()
 
   model_constructor = partial(model, daisy_config)
-  runner_wrapper = runner.get_train_runner(algo_name)
 
-  return model_constructor
+  return model_constructor, runner

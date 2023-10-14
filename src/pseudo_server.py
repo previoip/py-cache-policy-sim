@@ -1,7 +1,7 @@
 import queue
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from src.node import Node
 from src.cache import Cache, T_TTL, T_SIZE
 from src.pseudo_database import ABCPseudoDatabase, TabularPDB
@@ -10,9 +10,10 @@ from src.model.model_abc import ABCRecSysModel
 
 @dataclass
 class ServerConfig:
-  cache_maxsize: T_SIZE = 1024
-  cache_maxage: T_TTL   = 0
+  cache_maxsize: T_SIZE  = 1024
+  cache_maxage: T_TTL    = 0
   job_queue_maxsize: int = 0
+  model_config: dict     = field(default_factory=dict)
 
 @dataclass
 class ServerStates:
@@ -116,12 +117,12 @@ class Server(Node):
     self._request_log_database = TabularPDB(
       f'{self.name}',
       container=list(),
-      field_names=['timestamp', 'user_id', 'item_id']
+      field_names=['timestamp', 'user_id', 'item_id', 'rating']
     )
     self._request_status_log_database = TabularPDB(
       f'{self.name}',
       container=list(),
-      field_names=['timestamp', 'user_id', 'item_id', 'status']
+      field_names=['timestamp', 'user_id', 'item_id', 'status', 'rating']
     )
     self._cache = Cache()
     self._cache.configure(
