@@ -32,12 +32,12 @@ sim_conf = {
   'general': {
     'rand_seed': 1337,
     'mode': SIM_MODE_ENUM.localized,
-    'recsys_model_name': RECSYS_MODEL_ENUM.fm,
+    'recsys_model_name': RECSYS_MODEL_ENUM.item2vec,
     'recsys_model_topk_frac': .5,
-    'trial_cutoff': 100_000,
+    'trial_cutoff': 10_000,
     'dump_logs': True,
     'dump_configs': True,
-    'round_at_n_iter': 20_000,
+    'round_at_n_iter': 5_000,
     'log_folder': './log',
     'filename_template_log_req': 'log_request_{}.csv',
     'filename_template_log_req_stat': 'log_request_stat_{}.csv',
@@ -232,13 +232,15 @@ if __name__ == '__main__':
 
         train_set, test_set, test_ur, total_train_ur = train_runner.split(server.request_log_database.to_pd())
 
+        print(train_set)
+
         recsys_model = server.model
         recsys_config = server.cfg.model_config
-        recsys_config['train_ur'] = total_train_ur
-        runner = train_runner.get_train_runner(recsys_config)
-        trainer = runner(recsys_model, recsys_config)
+        recsys_config.update({'train_ur': total_train_ur})
+        runner_preset = train_runner.get_train_runner(recsys_config)
+        model_runner = runner_preset()
 
-        trainer(recsys_model, train_set)
+        model_runner(recsys_model, recsys_config, train_set)
 
         if sim_mode == SIM_MODE_ENUM.federated:
           # todo

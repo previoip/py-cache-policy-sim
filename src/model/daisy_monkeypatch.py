@@ -218,23 +218,26 @@ class _ModelTrainRunner:
     self._conf_ref = daisy_config
     self.splitter = TestSplitter(daisy_config)
 
+  def set_splitter(daisy_config):
+    self.splitter = TestSplitter(daisy_config)
+
   def split(self, df):
     train_index, test_index = self.splitter.split(df)
     train_set, test_set = df.iloc[train_index, :].copy(), df.iloc[test_index, :].copy()
 
     test_ur = get_ur(test_set)
     total_train_ur = get_ur(train_set)
-    self._conf_ref['train_ur'] = total_train_ur
+    self._conf_ref.update({'train_ur': total_train_ur})
 
     return train_set, test_set, test_ur, total_train_ur
 
-  def _train_preset1(self, model, config):
-    def wrapper(model, train_set):
+  def _train_preset1(self):
+    def wrapper(model, config, train_set):
       model.fit(train_set)
     return wrapper
 
-  def _train_preset2(self, model, config):
-    def wrapper(model, train_set):
+  def _train_preset2(self):
+    def wrapper(model, config, train_set):
       history_item_id, history_item_value, _  = get_history_matrix(train_set, config, row='user')
       config['history_item_id'], config['history_item_value'] = history_item_id, history_item_value
       train_dataset = AEDataset(train_set, yield_col=config['UID_NAME'])
@@ -242,8 +245,8 @@ class _ModelTrainRunner:
       model.fit(train_loader)
     return wrapper
 
-  def _train_preset3(self, model, config):
-    def wrapper(model, train_set):
+  def _train_preset3(self):
+    def wrapper(model, config, train_set):
       sampler = BasicNegtiveSampler(train_set, config)
       train_samples = sampler.sampling()
       train_dataset = BasicDataset(train_samples)
@@ -251,14 +254,14 @@ class _ModelTrainRunner:
       model.fit(train_loader)
     return wrapper
 
-  def _train_preset4(self, model, config):
-    def wrapper(model, train_set):
+  def _train_preset4(self):
+    def wrapper(model, config, train_set):
       config['inter_matrix'] = get_inter_matrix(train_set, config)
       self._train_preset3(model, config)
     return wrapper
 
-  def _train_preset5(self, model, config):
-    def wrapper(model, train_set):
+  def _train_preset5(self):
+    def wrapper(model, config, train_set):
       sampler = SkipGramNegativeSampler(train_set, config)
       train_samples = sampler.sampling()
       train_dataset = BasicDataset(train_samples)

@@ -27,6 +27,10 @@ cd ../
 echo "patching utils"
 cd utils
 
+
+echo "fixing deprecated lib mthods"
+find . -type f -exec sed -i "s/\.iteritems/\.items/g" {} \;
+
 echo "fixing funtion literals"
 # hotfix utils functions var literals refers to default df column names
 find . -type f -exec sed -i "s/row\['user'\]/row\['user_id'\]/g" {} \;
@@ -37,3 +41,16 @@ echo "fixing rel imports"
 find . -type f -exec sed -i 's/daisy\.utils/src\.model\.daisyRec\.daisy\.utils/g' {} \;
 
 cd ../../../../../
+
+echo "patching from patch files"
+
+tempfolder=./patchtemp
+if [ ! -d $tempfolder ]; then
+    mkdir $tempfolder
+fi
+
+echo "patching Item2VecRecommender.py"
+if [ ! -f $tempfolder/Item2VecRecommender.py ]; then
+    cp src/model/daisyRec/daisy/model/Item2VecRecommender.py $tempfolder/Item2VecRecommender.py
+fi
+patch $tempfolder/Item2VecRecommender.py patches/item2vec.patch -o src/model/daisyRec/daisy/model/Item2VecRecommender.py
