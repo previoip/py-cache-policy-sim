@@ -16,3 +16,5 @@ cp requirements.txt ./../../../requirements.txt
 cd ../../..
 
 source patch.sh
+
+echo -n "\nrequests>=2.30.0\n" >> requirements.txt
