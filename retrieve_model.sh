@@ -18,4 +18,4 @@ cd ../../..
 source patch.sh
 
 printf "\nrequests>=2.30.0\n" >> requirements.txt
-printf "\matplotlib>=3.8.0\n" >> requirements.txt
+printf "\nmatplotlib>=3.8.0\n" >> requirements.txt

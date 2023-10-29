@@ -7,11 +7,19 @@ import matplotlib.pyplot as plt
 import argparse
 
 CONF_HIST_FILENAME = 'hist.json'
-
 HIST_CONF_NAME = 'cache_aside_test'
 HIST_INDEX = -1
 FIG_EXPORT_PATH = './fig'
 
+class TELECOM_CONST:
+                # (unit),       (desc)
+  b_m   = 50e6  # Hz            bandwidth (edge -> users)
+  P_m   = 24    # W, dBm        transmission power (edge -> users) 
+  # G_m         # [0, 1]        channel gain range (edge -> users)
+  omega = -163  # W/hz, dBm/Hz  power density over noise
+  B_m   = 100e6 # Hz            bandwidth (base -> edge)
+  P_cs  = 30    # W, dBm        transmission power (base -> edge) 
+  # G_cs        # [0, 1]        channel gain range (base -> edge)
 
 # helpers 
 def cast_to(v: t.Any, np_dtype: np.dtype):
@@ -40,6 +48,8 @@ if __name__ == '__main__':
   history_conf_index = parsed_args.get('index', HIST_INDEX)
   save_fig = parsed_args.get('save_fig', False)
 
+  if save_fig:
+    os.makedirs(FIG_EXPORT_PATH, exist_ok=True)
 
   with open(CONF_HIST_FILENAME, 'r') as fo:
     hist = json.load(fo)
@@ -100,9 +110,14 @@ if __name__ == '__main__':
   # Vxy predicate
   log_df['Vxy'] = np.where((log_df['status'].apply(lambda x: str(x).lower().endswith('hit'))), 1, 0)
 
+  # sort by timestamp
+  log_df.sort_values(by='timestamp', inplace=True)
+
   print('done preprocessing log files.')
 
   # check preprocessed df
   print()
   print('log dataframe:')
   print(log_df)
+
+  print(pd.DataFrame.__file__)
