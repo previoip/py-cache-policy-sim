@@ -16,7 +16,7 @@ import numpy as np
 
 CONF_HIST_FILENAME = 'hist.json'
 SAVE_HIST = True
-PRUNE_HIST = False
+PRUNE_HIST = True
 
 class SIM_MODE_ENUM(Enum):
   cache_aside = auto()
@@ -31,13 +31,13 @@ sim_conf = {
 
   'general': {
     'rand_seed': 1337,
-    'mode': SIM_MODE_ENUM.localized,
-    'recsys_model_name': RECSYS_MODEL_ENUM.item2vec,
+    'mode': SIM_MODE_ENUM.cache_aside,
+    'recsys_model_name': RECSYS_MODEL_ENUM.mf,
     'recsys_model_topk_frac': .5,
-    'trial_cutoff': 10_000,
+    'trial_cutoff': 100_000,
     'dump_logs': True,
     'dump_configs': True,
-    'round_at_n_iter': 5_000,
+    'round_at_n_iter': 5000,
     'log_folder': './log',
     'filename_template_log_req': 'log_request_{}.csv',
     'filename_template_log_req_stat': 'log_request_stat_{}.csv',
@@ -69,8 +69,8 @@ def prepare_request_df(data_loader, sort_by='unix_timestamp'):
   return df_req
 
 def iter_requests(request_df):
-  for row, (_index, record) in enumerate(request_df.iterrows()):
-    user_id, item_id, value, timestamp = record
+  for row, record in enumerate(request_df.itertuples()):
+    _index, user_id, item_id, value, timestamp = record
     yield row, _index, user_id, item_id, value, timestamp
 
 def prepare_movie_df(data_loader):
@@ -190,24 +190,34 @@ if __name__ == '__main__':
   print('starting sim')
   print()
 
+  # prepare request iterover
   _round_at_n_iter = sim_conf['general']['round_at_n_iter']
   _max_req = sim_conf['general']['trial_cutoff']
   _it_request = iter_requests(prepare_request_df(data_loader))
   _tqdm_it_request = tqdm.tqdm(_it_request, total=_max_req, ascii=True)
 
+  # run thread per server
+  # todo: use threadpool or threadexec
   for server in base_server.recurse_nodes():
     server.run_thread()
 
+  # iterate over the request dataframe iterator
   for row, _index, user_id, item_id, value, timestamp in _tqdm_it_request:
     if _max_req != 0 and row >= _max_req: break
   
+    # make sure all job queue is exhausted before continuing
+    for server in base_server.recurse_nodes():
+      server.block_until_finished()
+
     _tqdm_it_request.set_description(f'performing request: user_id:{user_id} item_id:{item_id}'.ljust(55))
 
+    # perform request based on edge-to-user random uid mapping
     edge_server = user_to_edge_server_map.get(user_id)
     content_request_param = EventParamContentRequest(edge_server, timestamp, user_id, item_id, value, 1)
     edge_server.event_manager.trigger_event('OnContentRequest', event_param=content_request_param)
 
     if sim_mode == SIM_MODE_ENUM.cache_aside:
+      # todo: additionnal for cache_aside mode tasks
       pass
 
     elif row % _round_at_n_iter == 0 and row != 0:
@@ -216,23 +226,25 @@ if __name__ == '__main__':
       _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter}'.ljust(55))
       event_thread_worker_sleep_controller.set()
 
+      # recurse for all servers
       for server in base_server.recurse_nodes():
         server.block_until_finished()
 
+        # skip routine if its on the base server
         if server.name == 'base_server':
           continue
 
         _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter} server {server.name}'.ljust(55))
 
+        # get edge-server request log
         ls_request_log_database = server.request_log_database.get_container()
         if len(ls_request_log_database) == 0:
           continue
 
+        # train model on edge-server
         ls_users = list(set([int(i.user_id) for i in ls_request_log_database]))
 
         train_set, test_set, test_ur, total_train_ur = train_runner.split(server.request_log_database.to_pd())
-
-        print(train_set)
 
         recsys_model = server.model
         recsys_config = server.cfg.model_config
@@ -242,14 +254,15 @@ if __name__ == '__main__':
 
         model_runner(recsys_model, recsys_config, train_set)
 
+        # if mode is federated, set edge-server model with aggregated base-server model
         if sim_mode == SIM_MODE_ENUM.federated:
           # todo
-          ...
+          pass
 
         to_be_cached_items = list()
 
         for sel_user_id in ls_users:
-          to_be_cached_items.extend(recsys_model.full_rank(sel_user_id))
+          to_be_cached_items.extend(list(recsys_model.full_rank(sel_user_id)))
 
         to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count * .5))
         to_be_cached_items = [i[0] for i in to_be_cached_items]
@@ -264,11 +277,19 @@ if __name__ == '__main__':
           )
           server.event_manager.trigger_event('SubCache', event_param=cache_param)
 
+      # compile and aggregate edge-servers to base-server model
+      edge_models = filter(lambda x: x.name != 'base_server' and x.is_leaf(), base_server.recurse_nodes())
+      edge_models = map(lambda x: x.model, edge_models)
+      base_server.model.fl_agg(edge_models)
+      base_server.model.fl_delegate_to(edge_models)
+        
       event_thread_worker_sleep_controller.clear()
 
   print('waiting for all processes to finish...')
   for server in base_server.recurse_nodes():
     server.block_until_finished()
+
+  exit()
 
   # ================================================
   # finishing

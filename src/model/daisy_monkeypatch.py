@@ -1,7 +1,9 @@
 import os
 import yaml
+import typing as t
 from functools import partial
 from enum import Enum
+from functools import wraps
 from src.logger_helper import spawn_logger
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.model.model_abc import ABCRecSysModel
@@ -45,122 +47,258 @@ class RECSYS_MODEL_ENUM:
 # federated aggregation method patches
 # ==========================================
 
+# Misc helpers
+
+def __mpd_assert_arg_type(fn):
+  # asserts arg type decorator
+  @wraps(fn)
+  def wrapper(self, o_ls: t.Iterable):
+    assert all(map(lambda s, x: isinstance(x, s), zip(o_ls, [self]*len(list(o_ls)))))
+    return fn(self, o_ls)
+  return wrapper
+
 # ==========================================
 # Monkey Patch: EASE
 
-def __mp_EASE_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_EASE_flAgg(self, other_models: t.Iterable):
   print('__mp_EASE_flAgg')
-  ...
-
+  print(self.reg_weight)
+  print(self.item_similarity)
+  print(self.interaction_matrix)
+  
 EASE.fl_agg = __mp_EASE_flAgg
+
+@__mpd_assert_arg_type
+def __mp_EASE_flDelegate(self, other_models: t.Iterable):
+  print('__mp_EASE_flDelegate')
+
+EASE.fl_delegate_to = __mp_EASE_flDelegate
+
 
 # ==========================================
 # Monkey Patch: FM
 
-def __mp_FM_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_FM_flAgg(self, other_models: t.Iterable):
   print('__mp_FM_flAgg')
-  ...
+  print(self.embed_user)
+  print(self.embed_item)
+  print(self.u_bias)
+  print(self.i_bias)
+  print(self.bias_)
 
 FM.fl_agg = __mp_FM_flAgg
+
+@__mpd_assert_arg_type
+def __mp_FM_flDelegate(self, other_models: t.Iterable):
+  print('__mp_FM_flDelegate')
+
+FM.fl_delegate_to = __mp_FM_flDelegate
+
 
 # ==========================================
 # Monkey Patch: Item2Vec
 
-def __mp_Item2Vec_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_Item2Vec_flAgg(self, other_models: t.Iterable):
   print('__mp_Item2Vec_flAgg')
-  ...
+  print(self.user_embedding)
+  print(self.shared_embedding)
 
 Item2Vec.fl_agg = __mp_Item2Vec_flAgg
+
+@__mpd_assert_arg_type
+def __mp_Item2Vec_flDelegate(self, other_models: t.Iterable):
+  print('__mp_Item2Vec_flDelegate')
+
+Item2Vec.fl_delegate_to = __mp_Item2Vec_flDelegate
+
 
 # ==========================================
 # Monkey Patch: ItemKNNCF
 
-def __mp_ItemKNNCF_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_ItemKNNCF_flAgg(self, other_models: t.Iterable):
   print('__mp_ItemKNNCF_flAgg')
-  ...
+  print(self.pred_mat)
 
 ItemKNNCF.fl_agg = __mp_ItemKNNCF_flAgg
+
+@__mpd_assert_arg_type
+def __mp_ItemKNNCF_flDelegate(self, other_models: t.Iterable):
+  print('__mp_ItemKNNCF_flDelegate')
+
+ItemKNNCF.fl_delegate_to = __mp_ItemKNNCF_flDelegate
+
 
 # ==========================================
 # Monkey Patch: LightGCN
 
-def __mp_LightGCN_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_LightGCN_flAgg(self, other_models: t.Iterable):
   print('__mp_LightGCN_flAgg')
-  ...
+  print(self.restore_user_e)
+  print(self.restore_item_e)
 
 LightGCN.fl_agg = __mp_LightGCN_flAgg
+
+@__mpd_assert_arg_type
+def __mp_LightGCN_flDelegate(self, other_models: t.Iterable):
+  print('__mp_LightGCN_flDelegate')
+
+LightGCN.fl_delegate_to = __mp_LightGCN_flDelegate
+
 
 # ==========================================
 # Monkey Patch: MF
 
-def __mp_MF_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_MF_flAgg(self, other_models: t.Iterable):
   print('__mp_MF_flAgg')
-  ...
+  print(self.embed_user)
+  print(self.embed_item)
 
 MF.fl_agg = __mp_MF_flAgg
+
+@__mpd_assert_arg_type
+def __mp_MF_flDelegate(self, other_models: t.Iterable):
+  print('__mp_MF_flDelegate')
+
+MF.fl_delegate_to = __mp_MF_flDelegate
+
 
 # ==========================================
 # Monkey Patch: NeuMF
 
-def __mp_NeuMF_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_NeuMF_flAgg(self, other_models: t.Iterable):
   print('__mp_NeuMF_flAgg')
-  ...
+  print(self.embed_user_GMF) 
+  print(self.embed_user_MLP) 
+  print(self.embed_item_GMF)
+  print(self.embed_item_MLP)
+  print(self.predict_layer)
+
 
 NeuMF.fl_agg = __mp_NeuMF_flAgg
+
+@__mpd_assert_arg_type
+def __mp_NeuMF_flDelegate(self, other_models: t.Iterable):
+  print('__mp_NeuMF_flDelegate')
+
+NeuMF.fl_delegate_to = __mp_NeuMF_flDelegate
+
 
 # ==========================================
 # Monkey Patch: NFM
 
-def __mp_NFM_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_NFM_flAgg(self, other_models: t.Iterable):
   print('__mp_NFM_flAgg')
-  ...
+  print(self.deep_layers)
+  print(self.prediction)
 
 NFM.fl_agg = __mp_NFM_flAgg
+
+@__mpd_assert_arg_type
+def __mp_NFM_flDelegate(self, other_models: t.Iterable):
+  print('__mp_NFM_flDelegate')
+
+NFM.fl_delegate_to = __mp_NFM_flDelegate
+
 
 # ==========================================
 # Monkey Patch: NGCF
 
-def __mp_NGCF_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_NGCF_flAgg(self, other_models: t.Iterable):
   print('__mp_NGCF_flAgg')
-  ...
+  print(self.embed_user)
+  print(self.embed_item)
+  print(self.gnn_layers)
 
 NGCF.fl_agg = __mp_NGCF_flAgg
+
+@__mpd_assert_arg_type
+def __mp_NGCF_flDelegate(self, other_models: t.Iterable):
+  print('__mp_NGCF_flDelegate')
+
+NGCF.fl_delegate_to = __mp_NGCF_flDelegate
+
 
 # ==========================================
 # Monkey Patch: MostPop
 
-def __mp_MostPop_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_MostPop_flAgg(self, other_models: t.Iterable):
   print('__mp_MostPop_flAgg')
-  ...
+  print(self.item_score)
 
 MostPop.fl_agg = __mp_MostPop_flAgg
+
+@__mpd_assert_arg_type
+def __mp_MostPop_flDelegate(self, other_models: t.Iterable):
+  print('__mp_MostPop_flDelegate')
+
+MostPop.fl_delegate_to = __mp_MostPop_flDelegate
+
 
 # ==========================================
 # Monkey Patch: PureSVD
 
-def __mp_PureSVD_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_PureSVD_flAgg(self, other_models: t.Iterable):
   print('__mp_PureSVD_flAgg')
-  ...
+  print(self.user_vec)
+  print(self.item_vec)
 
 PureSVD.fl_agg = __mp_PureSVD_flAgg
+
+@__mpd_assert_arg_type
+def __mp_PureSVD_flDelegate(self, other_models: t.Iterable):
+  print('__mp_PureSVD_flDelegate')
+
+PureSVD.fl_delegate_to = __mp_PureSVD_flDelegate
+
 
 # ==========================================
 # Monkey Patch: SLiM
 
-def __mp_SLiM_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_SLiM_flAgg(self, other_models: t.Iterable):
   print('__mp_SLiM_flAgg')
-  ...
+  print(self.A_tilde)
+  print(self.w_sparse)
 
 SLiM.fl_agg = __mp_SLiM_flAgg
+
+@__mpd_assert_arg_type
+def __mp_SLiM_flDelegate(self, other_models: t.Iterable):
+  print('__mp_SLiM_flDelegate')
+
+SLiM.fl_delegate_to = __mp_SLiM_flDelegate
+
 
 # ==========================================
 # Monkey Patch: VAECF
 
-def __mp_VAECF_flAgg(self, *args, **kwargs):
+@__mpd_assert_arg_type
+def __mp_VAECF_flAgg(self, other_models: t.Iterable):
   print('__mp_VAECF_flAgg')
-  ...
+  print(self.history_user_id)
+  print(self.history_item_id)
+  print(self.history_user_value)
+  print(self.history_item_value)
 
 VAECF.fl_agg = __mp_VAECF_flAgg
+
+@__mpd_assert_arg_type
+def __mp_VAECF_flDelegate(self, other_models: t.Iterable):
+  print('__mp_VAECF_flDelegate')
+
+VAECF.fl_delegate_to = __mp_VAECF_flDelegate
+
 
 
 # ==========================================

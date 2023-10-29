@@ -1,6 +1,7 @@
 import queue
 import threading
 import time
+import numpy as np
 from dataclasses import dataclass, field
 from src.node import Node
 from src.cache import Cache, T_TTL, T_SIZE
@@ -15,7 +16,9 @@ class ServerConfig:
   job_queue_maxsize: int            = 0
   model_config: dict                = field(default_factory=dict)
   db_req_log_fieldnames: list       = field(default_factory=lambda: ['timestamp', 'user_id', 'movie_id', 'rating'])
+  db_req_log_fieldtypes: list       = field(default_factory=lambda: ['int64', 'uint32', 'uint32', 'float'])
   db_req_stat_log_fieldnames: list  = field(default_factory=lambda: ['timestamp', 'user_id', 'movie_id', 'rating', 'status'])
+  db_req_stat_log_fieldtypes: list  = field(default_factory=lambda: ['int64', 'uint32', 'uint32', 'float', 'string'])
   flag_suppress_cache_on_req: bool  = False
 
 
@@ -121,12 +124,14 @@ class Server(Node):
     self._request_log_database = TabularPDB(
       f'{self.name}',
       container=list(),
-      field_names=self.cfg.db_req_log_fieldnames
+      field_names=self.cfg.db_req_log_fieldnames,
+      field_dtypes=self.cfg.db_req_log_fieldtypes
     )
     self._request_status_log_database = TabularPDB(
       f'{self.name}',
       container=list(),
-      field_names=self.cfg.db_req_stat_log_fieldnames
+      field_names=self.cfg.db_req_stat_log_fieldnames,
+      field_dtypes=self.cfg.db_req_stat_log_fieldtypes
     )
     self._cache = Cache()
     self._cache.configure(

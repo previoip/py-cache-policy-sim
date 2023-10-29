@@ -77,7 +77,8 @@ class ListPDB(ABCPseudoDatabase):
 
   def __init__(self, name, container: list=list()):
     super().__init__(name=name, container=container)
-    self.dtypes = 'int64'
+    self.field_dtypes = 'int64'
+    self._cursor = 0
 
   def _has(self, key: t.Hashable):
     return key < len(self._container)
@@ -88,10 +89,22 @@ class ListPDB(ABCPseudoDatabase):
   def _add(self, key: t.Hashable, entry: t.Any):
     return self._container.append(entry)
 
-  def to_pd(self):
+  def _set_cursor(self):
+    self._cursor = len(self._container)
+
+  def get_container_by_cursor(self):
+    return c
+
+  def to_pd(self, use_cursor=False):
+    if use_cursor:
+      c = self._container[self._cursor:]
+    else:
+      c = self._container
+    self._set_cursor()
     if hasattr(self, 'field_names'):
-      return DataFrame(data=self._container, columns=self.field_names, dtype=self.dtypes)
-    return DataFrame(data=self._container, dtype=self.dtypes)
+      # _dtypes = list(zip(self.field_names, self.field_dtypes))
+      return DataFrame(data=c, columns=self.field_names)#.astype(_dtypes)
+    return DataFrame(data=c, dtype=self.field_dtypes)
 
   def dump(self, fp: t.TextIO, delim: str=';'):
     if hasattr(self, 'field_names'):
@@ -106,9 +119,10 @@ class ListPDB(ABCPseudoDatabase):
 
 class TabularPDB(ListPDB):
 
-  def __init__(self, name, container: list=list(), field_names=['timestamp', 'entry']):
+  def __init__(self, name, container: list=list(), field_names=['timestamp', 'entry'], field_dtypes=['uint64', 'string']):
     super().__init__(name=name, container=container)
     self.field_names = field_names
+    self.field_dtypes = field_dtypes
     self._entry_prototype = namedtuple(f'{self._name}Record', field_names)
 
   def add_entry(self, *values):
