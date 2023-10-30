@@ -104,17 +104,17 @@ class ListPDB(ABCPseudoDatabase):
     if hasattr(self, 'field_names'):
       # _dtypes = list(zip(self.field_names, self.field_dtypes))
       return DataFrame(data=c, columns=self.field_names)#.astype(_dtypes)
-    return DataFrame(data=c, dtype=self.field_dtypes)
+    return DataFrame(data=c)
 
   def dump(self, fp: t.TextIO, delim: str=';'):
-    if hasattr(self, 'field_names'):
-      fp.writelines((delim.join(self.field_names), '\n'))
-
-    for entry in self._container:
-      try:
-        fp.writelines((delim.join(map(lambda x: str(x), iter(entry))), '\n'))
-      except TypeError:
-        fp.writelines((str(entry), '\n'))
+    # if hasattr(self, 'field_names'):
+    #   fp.writelines((delim.join(self.field_names), '\n'))
+    # for entry in self._container:
+    #   try:
+    #     fp.writelines((delim.join(map(lambda x: str(x), iter(entry))), '\n'))
+    #   except TypeError:
+    #     fp.writelines((str(entry), '\n'))
+    self.to_pd(use_cursor=False).to_csv(fp, sep=delim)
 
 
 class TabularPDB(ListPDB):

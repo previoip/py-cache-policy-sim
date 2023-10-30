@@ -4,6 +4,7 @@ from src.pseudo_server import Server
 from src.cache import T_SIZE
 
 class EventParamContentRequest(t.NamedTuple):
+  request_id: int
   client: Server
   timestamp: int
   user_id: t.Any
@@ -13,6 +14,7 @@ class EventParamContentRequest(t.NamedTuple):
 
 
 class EventParamContentRequestStatus(t.NamedTuple):
+  request_id: int
   client: Server
   timestamp: int
   user_id: t.Any
@@ -93,6 +95,7 @@ def handle_log_request(ctx: EventContext, event_param):
   if not hasattr(ctx.event_target, 'request_log_database'):
     return 1
   ctx.event_target.request_log_database.add_entry(
+    event_param.request_id,
     event_param.timestamp,
     event_param.user_id,
     event_param.item_id,
@@ -108,6 +111,7 @@ def handle_log_request_status(ctx: EventContext, event_param):
   if not hasattr(ctx.event_target, 'request_status_log_database'):
     return 1
   ctx.event_target.request_status_log_database.add_entry(
+    event_param.request_id,
     event_param.timestamp,
     event_param.user_id,
     event_param.item_id,

@@ -96,13 +96,14 @@ def group_partition(partition, object_list):
       ret[item] = object_list[n]
   return ret
 
-def inject_daisy_config(data_loader, daisy_config):
+def update_daisy_config_user_item_num(data_loader, daisy_config):
   user_key = sim_conf['loader_conf']['user_key']
   user_values = data_loader.df_users[user_key].unique()
-  daisy_config['user_num'] = len(user_values)
-  daisy_config['item_num'] = len(prepare_movie_df(data_loader))
+  daisy_config.update({'user_num': len(user_values)})
+  daisy_config.update({'item_num': len(prepare_movie_df(data_loader))}) 
 
 def override_daisy_config(daisy_config):
+  # custom daiy config overrides embedded as dict
   daisy_config.update({
     "test_size": 0.0,
     'epochs': 5,
@@ -145,7 +146,7 @@ if __name__ == '__main__':
   daisy_config['seed'] = sim_conf['general']['rand_seed']
   init_seed(daisy_config['seed'], True)
 
-  inject_daisy_config(data_loader, daisy_config)
+  update_daisy_config_user_item_num(data_loader, daisy_config)
   override_daisy_config(daisy_config)
 
   model_constructor, train_runner = build_model_constructor(daisy_config)
@@ -213,7 +214,7 @@ if __name__ == '__main__':
 
     # perform request based on edge-to-user random uid mapping
     edge_server = user_to_edge_server_map.get(user_id)
-    content_request_param = EventParamContentRequest(edge_server, timestamp, user_id, item_id, value, 1)
+    content_request_param = EventParamContentRequest(row, edge_server, timestamp, user_id, item_id, value, 1)
     edge_server.event_manager.trigger_event('OnContentRequest', event_param=content_request_param)
 
     if sim_mode == SIM_MODE_ENUM.cache_aside:
@@ -226,7 +227,12 @@ if __name__ == '__main__':
       _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter}'.ljust(55))
       event_thread_worker_sleep_controller.set()
 
-      # recurse for all servers
+      # if sim_mode centralized:
+      if sim_mode == SIM_MODE_ENUM.centralized:
+        continue
+
+
+      # recurse all servers
       for server in base_server.recurse_nodes():
         server.block_until_finished()
 
@@ -236,7 +242,7 @@ if __name__ == '__main__':
 
         _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter} server {server.name}'.ljust(55))
 
-        # get edge-server request log
+        # get current edge-server request log
         ls_request_log_database = server.request_log_database.get_container()
         if len(ls_request_log_database) == 0:
           continue
@@ -244,7 +250,7 @@ if __name__ == '__main__':
         # train model on edge-server
         ls_users = list(set([int(i.user_id) for i in ls_request_log_database]))
 
-        train_set, test_set, test_ur, total_train_ur = train_runner.split(server.request_log_database.to_pd())
+        train_set, test_set, test_ur, total_train_ur = train_runner.split(server.request_log_database.to_pd(use_cursor=True))
 
         recsys_model = server.model
         recsys_config = server.cfg.model_config
@@ -268,6 +274,7 @@ if __name__ == '__main__':
         to_be_cached_items = [i[0] for i in to_be_cached_items]
         for _item_id in to_be_cached_items:
           cache_param = EventParamContentRequest(
+              request_id=None,
               client=server,
               timestamp=timestamp,
               user_id=user_id,
@@ -277,19 +284,18 @@ if __name__ == '__main__':
           )
           server.event_manager.trigger_event('SubCache', event_param=cache_param)
 
-      # compile and aggregate edge-servers to base-server model
-      edge_models = filter(lambda x: x.name != 'base_server' and x.is_leaf(), base_server.recurse_nodes())
-      edge_models = map(lambda x: x.model, edge_models)
-      base_server.model.fl_agg(edge_models)
-      base_server.model.fl_delegate_to(edge_models)
+      # if mode is federated, compile and aggregate edge-servers to base-server model
+      if sim_mode == SIM_MODE_ENUM.federated:
+        edge_models = filter(lambda x: x.name != 'base_server' and x.is_leaf(), base_server.recurse_nodes())
+        edge_models = map(lambda x: x.model, edge_models)
+        base_server.model.fl_agg(edge_models)
+        base_server.model.fl_delegate_to(edge_models)
         
       event_thread_worker_sleep_controller.clear()
 
   print('waiting for all processes to finish...')
   for server in base_server.recurse_nodes():
     server.block_until_finished()
-
-  exit()
 
   # ================================================
   # finishing
