@@ -10,15 +10,37 @@ from collections import namedtuple
 CONF_HIST_FILENAME = 'hist.json'
 FIG_EXPORT_PATH = './fig'
 
-class TELECOM_CONST:
-                # (unit),       (desc)
-  b_m   = 50e6  # Hz            bandwidth (edge -> users)
-  P_m   = 24    # W, dBm        transmission power (edge -> users)
-  # G_m         # [0, 1]        channel gain range (edge -> users)
-  omega = -163  # W/hz, dBm/Hz  power density over noise
-  B_m   = 100e6 # Hz            bandwidth (base -> edge)
-  P_cs  = 30    # W, dBm        transmission power (base -> edge)
-  # G_cs        # [0, 1]        channel gain range (base -> edge)
+class TELECOM_EVAL:
+
+  class PARAMS:
+    uniform_hy = 1 # assumes all content have same sizes
+
+  class DR_CONST:
+                  # (unit),       (desc)
+    b_m   = 50e6  # Hz            bandwidth (edge -> users)
+    P_m   = 24    # W, dBm        transmission power (edge -> users)
+    # G_m         # [0, 1]        channel gain range (edge -> users)
+    omega = -163  # W/hz, dBm/Hz  power density over noise
+    B_m   = 100e6 # Hz            bandwidth (base -> edge)
+    P_cs  = 30    # W, dBm        transmission power (base -> edge)
+    # G_cs        # [0, 1]        channel gain range (base -> edge)
+
+  @staticmethod
+  def _content_delivery(Vxy, hy, rx, R):
+    return (Vxy * hy / rx) + ((1 - Vxy) * ((hy / R) + (hy / rx)))
+
+  @classmethod
+  def content_delivery(cls, df):
+    return cls._content_delivery(df['Vxy'], df['hy'], df['rx'], df['R'])
+
+  @staticmethod
+  def _communication_energy_cost(dxy, P_m, dy, P_cs):
+    return (dxy * P_m) + (dy * P_cs)
+
+  @classmethod
+  def communication_energy_cost(cls, df):
+    return cls._communication_energy_cost(df['dxy'], cls.DR_CONST.P_m, df['dy'], cls.DR_CONST.P_cs)
+
 
 # helpers:
 
@@ -103,6 +125,7 @@ if __name__ == '__main__':
 
   parser = argparse_setup()
   parsed_args = vars(parser.parse_args())
+  eval_results = dict()
 
   if parsed_args.get('save_fig', False):
     os.makedirs(FIG_EXPORT_PATH, exist_ok=True)
@@ -113,16 +136,69 @@ if __name__ == '__main__':
     print()
     print('evaluating:', config_hist_record.hist_name, config_hist_record.hist_timestamp)
 
+    eval_results[config_hist_record.hist_name] = dict()
+
     log_df = read_and_concat_dfs(config_hist_record)
     log_df = filter_df(log_df, parsed_args)
 
-    # Vxy predicate
-    log_df['Vxy'] = np.where((log_df['status'].apply(lambda x: str(x).lower().endswith('hit'))), 1, 0)
+    server_names_ls = log_df['server'].unique()
 
-    # sort again by timestamp
+    # sort again by timestamp for good measure
     log_df.sort_values(by='timestamp', inplace=True)
 
-    # check preprocessed df
+    # check df prior preproc
     print()
     print('log dataframe:')
     print(log_df)
+
+
+    # eval Vxy predicate
+    log_df['Vxy'] = np.where((log_df['status'].apply(lambda x: str(x).lower().endswith('hit'))), 1, 0)
+
+    # sizeof as hy per content_id (or uniform)
+    if 'sizeof' in log_df.columns:
+      log_df['hy'] = log_df['sizeof']
+    else:
+      log_df['hy'] = TELECOM_EVAL.PARAMS.uniform_hy
+
+    # !!! experiment: R transmission rate is proportional to inverse node depth attribute
+    log_df['R'] = log_df['server'].apply(lambda x: 1 / float(config_hist_record.results['depths'].get(x)))
+
+    # !!! experiment: rx downlink transmission rate is proportional to R squared
+    log_df['rx'] = log_df['R'] ** 2
+
+    # reeval for dy
+    log_df['dy'] = log_df['hy'] / log_df['R']
+
+    # ================================================
+    # begin
+
+    log_df['dxy'] = TELECOM_EVAL.content_delivery(log_df)
+    log_df['Ecom'] = TELECOM_EVAL.communication_energy_cost(log_df)
+
+    # check evaluated df
+    print()
+    print('evaluated log dataframe:')
+    print(log_df)
+
+    # server aggregates
+    agg_df = log_df[['server', 'dxy', 'Ecom']]
+    agg_gr = agg_df.groupby('server')
+    agg_df = log_df[['dxy', 'Ecom']]
+
+    per_server_metrics = agg_gr.agg(np.average)
+    print()
+    print('average metrics per server:')
+    print(per_server_metrics)
+
+    overall_server_metrics = agg_df.agg(np.average)
+    print()
+    print('average metrics overall:')
+    print(overall_server_metrics)
+    print()
+
+    eval_results[config_hist_record.hist_name]['dxy'] = overall_server_metrics['dxy']
+    eval_results[config_hist_record.hist_name]['Ecom'] = overall_server_metrics['Ecom']
+
+
+print(eval_results)

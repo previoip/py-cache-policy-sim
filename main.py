@@ -16,7 +16,7 @@ import numpy as np
 
 CONF_HIST_FILENAME = 'hist.json'
 SAVE_HIST = True
-PRUNE_HIST = True
+PRUNE_HIST = True # set to false to be able to evaluate multiple configuration
 
 class SIM_MODE_ENUM(Enum):
   cache_aside = auto()
@@ -346,6 +346,11 @@ if __name__ == '__main__':
 
     sim_conf['results'].update({'log_files': log_files})
 
+  server_node_depths = {}
+  for node in base_server.recurse_nodes():
+    server_node_depths[node.name] = node.depth + 1
+  
+  sim_conf['results'].update({'depths': server_node_depths})
 
   if sim_conf['general']['dump_configs']:
 
