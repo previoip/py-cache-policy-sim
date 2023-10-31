@@ -1,5 +1,13 @@
 # Edge-Server Cache Simulator
 
+# Note on `eval.py`
+
+Args can be passed to configure evaluation behaviour. Here are few args/flags examples:
+
+- Since eval evaluates all server nodes, to exclude base server then run `python3 eval.py filter --server edge_server_0,edge_server_1,edge_server_2,edge_server_3,edge_server_4,edge_server_5`. Comma delimited.
+- To enable save figures, include `--save-fig` flag.
+- `--help` to see available commands/args/flags.
+
 # External Resources
 
 Note: external resources needed to be downloaded using `retrieve_model.sh` before starting the simulator.

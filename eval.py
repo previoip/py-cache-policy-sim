@@ -127,7 +127,9 @@ if __name__ == '__main__':
   parsed_args = vars(parser.parse_args())
   eval_results = dict()
 
-  if parsed_args.get('save_fig', False):
+  do_save_figs = parsed_args.get('save_fig', False)
+
+  if do_save_figs:
     os.makedirs(FIG_EXPORT_PATH, exist_ok=True)
 
   config_hist_records = parse_hitorical_json(CONF_HIST_FILENAME)
@@ -200,5 +202,34 @@ if __name__ == '__main__':
     eval_results[config_hist_record.hist_name]['dxy'] = overall_server_metrics['dxy']
     eval_results[config_hist_record.hist_name]['Ecom'] = overall_server_metrics['Ecom']
 
+# see aggregates in plt figures
 
-print(eval_results)
+plt.rcParams["figure.figsize"] = (8, 4)
+
+# > plot for dxy delay
+
+d_plot_dxy = dict()
+for config_name in eval_results.keys():
+  val = eval_results[config_name]['dxy']
+  d_plot_dxy[config_name] = val
+
+plt.bar(*zip(*d_plot_dxy.items()))
+if do_save_figs:
+  plt.savefig(os.path.join(FIG_EXPORT_PATH, 'dxy.png'))
+else:
+  plt.show()
+plt.close()
+
+# > plot for Ecom consumption
+
+d_plot_dxy = dict()
+for config_name in eval_results.keys():
+  val = eval_results[config_name]['Ecom']
+  d_plot_dxy[config_name] = val
+
+plt.bar(*zip(*d_plot_dxy.items()))
+if do_save_figs:
+  plt.savefig(os.path.join(FIG_EXPORT_PATH, 'Ecom.png'))
+else:
+  plt.show()
+plt.close()

@@ -1,0 +1,419 @@
+[
+  {
+    "conf_name": "cache_aside_1div10_alloc",
+    "conf_prfx": "cat",
+    "conf_ts": "2023-10-31T2043",
+    "general": {
+      "rand_seed": 1337,
+      "mode": "SIM_MODE_ENUM.cache_aside",
+      "recsys_model_name": "mf",
+      "recsys_model_topk_frac": 0.5,
+      "trial_cutoff": 100000,
+      "dump_logs": true,
+      "dump_configs": true,
+      "round_at_n_iter": 5000,
+      "log_folder": "./log",
+      "filename_template_log_req": "log_request_{}.csv",
+      "filename_template_log_req_stat": "log_request_stat_{}.csv"
+    },
+    "loader_conf": {
+      "item_key": "movie_id",
+      "user_key": "user_id",
+      "value_key": "rating"
+    },
+    "network_conf": {
+      "num_edge": 5,
+      "cache_ttl": 99999,
+      "base_server_alloc_frac": 1,
+      "edge_server_alloc_frac": 0.1
+    },
+    "results": {
+      "hit_ratios": [
+        {
+          "server": "base_server",
+          "values": {
+            "hit": 0.9790062282354997
+          }
+        },
+        {
+          "server": "edge_server_0",
+          "values": {
+            "hit": 0.20278229082047117
+          }
+        },
+        {
+          "server": "edge_server_1",
+          "values": {
+            "hit": 0.19421986804200353
+          }
+        },
+        {
+          "server": "edge_server_2",
+          "values": {
+            "hit": 0.18776058556471786
+          }
+        },
+        {
+          "server": "edge_server_3",
+          "values": {
+            "hit": 0.22045492464267838
+          }
+        },
+        {
+          "server": "edge_server_4",
+          "values": {
+            "hit": 0.1920374707259953
+          }
+        }
+      ],
+      "log_files": [
+        {
+          "server": "base_server",
+          "type": "request",
+          "fp": "cat_2023-10-31T2043_log_request_base_server.csv"
+        },
+        {
+          "server": "base_server",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2043_log_request_stat_base_server.csv"
+        },
+        {
+          "server": "edge_server_0",
+          "type": "request",
+          "fp": "cat_2023-10-31T2043_log_request_edge_server_0.csv"
+        },
+        {
+          "server": "edge_server_0",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2043_log_request_stat_edge_server_0.csv"
+        },
+        {
+          "server": "edge_server_1",
+          "type": "request",
+          "fp": "cat_2023-10-31T2043_log_request_edge_server_1.csv"
+        },
+        {
+          "server": "edge_server_1",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2043_log_request_stat_edge_server_1.csv"
+        },
+        {
+          "server": "edge_server_2",
+          "type": "request",
+          "fp": "cat_2023-10-31T2043_log_request_edge_server_2.csv"
+        },
+        {
+          "server": "edge_server_2",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2043_log_request_stat_edge_server_2.csv"
+        },
+        {
+          "server": "edge_server_3",
+          "type": "request",
+          "fp": "cat_2023-10-31T2043_log_request_edge_server_3.csv"
+        },
+        {
+          "server": "edge_server_3",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2043_log_request_stat_edge_server_3.csv"
+        },
+        {
+          "server": "edge_server_4",
+          "type": "request",
+          "fp": "cat_2023-10-31T2043_log_request_edge_server_4.csv"
+        },
+        {
+          "server": "edge_server_4",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2043_log_request_stat_edge_server_4.csv"
+        }
+      ],
+      "depths": {
+        "base_server": 1,
+        "edge_server_0": 2,
+        "edge_server_1": 2,
+        "edge_server_2": 2,
+        "edge_server_3": 2,
+        "edge_server_4": 2
+      }
+    }
+  },
+  {
+    "conf_name": "cache_aside_2div10_alloc",
+    "conf_prfx": "cat",
+    "conf_ts": "2023-10-31T2046",
+    "general": {
+      "rand_seed": 1337,
+      "mode": "SIM_MODE_ENUM.cache_aside",
+      "recsys_model_name": "mf",
+      "recsys_model_topk_frac": 0.5,
+      "trial_cutoff": 100000,
+      "dump_logs": true,
+      "dump_configs": true,
+      "round_at_n_iter": 5000,
+      "log_folder": "./log",
+      "filename_template_log_req": "log_request_{}.csv",
+      "filename_template_log_req_stat": "log_request_stat_{}.csv"
+    },
+    "loader_conf": {
+      "item_key": "movie_id",
+      "user_key": "user_id",
+      "value_key": "rating"
+    },
+    "network_conf": {
+      "num_edge": 5,
+      "cache_ttl": 99999,
+      "base_server_alloc_frac": 1,
+      "edge_server_alloc_frac": 0.2
+    },
+    "results": {
+      "hit_ratios": [
+        {
+          "server": "base_server",
+          "values": {
+            "hit": 0.9699089396568689
+          }
+        },
+        {
+          "server": "edge_server_0",
+          "values": {
+            "hit": 0.44107909806728707
+          }
+        },
+        {
+          "server": "edge_server_1",
+          "values": {
+            "hit": 0.4360066122326304
+          }
+        },
+        {
+          "server": "edge_server_2",
+          "values": {
+            "hit": 0.44125690108869514
+          }
+        },
+        {
+          "server": "edge_server_3",
+          "values": {
+            "hit": 0.4493448386065836
+          }
+        },
+        {
+          "server": "edge_server_4",
+          "values": {
+            "hit": 0.43789042498719916
+          }
+        }
+      ],
+      "log_files": [
+        {
+          "server": "base_server",
+          "type": "request",
+          "fp": "cat_2023-10-31T2046_log_request_base_server.csv"
+        },
+        {
+          "server": "base_server",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2046_log_request_stat_base_server.csv"
+        },
+        {
+          "server": "edge_server_0",
+          "type": "request",
+          "fp": "cat_2023-10-31T2046_log_request_edge_server_0.csv"
+        },
+        {
+          "server": "edge_server_0",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2046_log_request_stat_edge_server_0.csv"
+        },
+        {
+          "server": "edge_server_1",
+          "type": "request",
+          "fp": "cat_2023-10-31T2046_log_request_edge_server_1.csv"
+        },
+        {
+          "server": "edge_server_1",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2046_log_request_stat_edge_server_1.csv"
+        },
+        {
+          "server": "edge_server_2",
+          "type": "request",
+          "fp": "cat_2023-10-31T2046_log_request_edge_server_2.csv"
+        },
+        {
+          "server": "edge_server_2",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2046_log_request_stat_edge_server_2.csv"
+        },
+        {
+          "server": "edge_server_3",
+          "type": "request",
+          "fp": "cat_2023-10-31T2046_log_request_edge_server_3.csv"
+        },
+        {
+          "server": "edge_server_3",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2046_log_request_stat_edge_server_3.csv"
+        },
+        {
+          "server": "edge_server_4",
+          "type": "request",
+          "fp": "cat_2023-10-31T2046_log_request_edge_server_4.csv"
+        },
+        {
+          "server": "edge_server_4",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2046_log_request_stat_edge_server_4.csv"
+        }
+      ],
+      "depths": {
+        "base_server": 1,
+        "edge_server_0": 2,
+        "edge_server_1": 2,
+        "edge_server_2": 2,
+        "edge_server_3": 2,
+        "edge_server_4": 2
+      }
+    }
+  },
+  {
+    "conf_name": "cache_aside_4div10_alloc",
+    "conf_prfx": "cat",
+    "conf_ts": "2023-10-31T2049",
+    "general": {
+      "rand_seed": 1337,
+      "mode": "SIM_MODE_ENUM.cache_aside",
+      "recsys_model_name": "mf",
+      "recsys_model_topk_frac": 0.5,
+      "trial_cutoff": 100000,
+      "dump_logs": true,
+      "dump_configs": true,
+      "round_at_n_iter": 5000,
+      "log_folder": "./log",
+      "filename_template_log_req": "log_request_{}.csv",
+      "filename_template_log_req_stat": "log_request_stat_{}.csv"
+    },
+    "loader_conf": {
+      "item_key": "movie_id",
+      "user_key": "user_id",
+      "value_key": "rating"
+    },
+    "network_conf": {
+      "num_edge": 5,
+      "cache_ttl": 99999,
+      "base_server_alloc_frac": 1,
+      "edge_server_alloc_frac": 0.4
+    },
+    "results": {
+      "hit_ratios": [
+        {
+          "server": "base_server",
+          "values": {
+            "hit": 0.9298640647152031
+          }
+        },
+        {
+          "server": "edge_server_0",
+          "values": {
+            "hit": 0.7764345906902087
+          }
+        },
+        {
+          "server": "edge_server_1",
+          "values": {
+            "hit": 0.7600832562442184
+          }
+        },
+        {
+          "server": "edge_server_2",
+          "values": {
+            "hit": 0.7488429205629545
+          }
+        },
+        {
+          "server": "edge_server_3",
+          "values": {
+            "hit": 0.7511441647597255
+          }
+        },
+        {
+          "server": "edge_server_4",
+          "values": {
+            "hit": 0.7652699257288549
+          }
+        }
+      ],
+      "log_files": [
+        {
+          "server": "base_server",
+          "type": "request",
+          "fp": "cat_2023-10-31T2049_log_request_base_server.csv"
+        },
+        {
+          "server": "base_server",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2049_log_request_stat_base_server.csv"
+        },
+        {
+          "server": "edge_server_0",
+          "type": "request",
+          "fp": "cat_2023-10-31T2049_log_request_edge_server_0.csv"
+        },
+        {
+          "server": "edge_server_0",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2049_log_request_stat_edge_server_0.csv"
+        },
+        {
+          "server": "edge_server_1",
+          "type": "request",
+          "fp": "cat_2023-10-31T2049_log_request_edge_server_1.csv"
+        },
+        {
+          "server": "edge_server_1",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2049_log_request_stat_edge_server_1.csv"
+        },
+        {
+          "server": "edge_server_2",
+          "type": "request",
+          "fp": "cat_2023-10-31T2049_log_request_edge_server_2.csv"
+        },
+        {
+          "server": "edge_server_2",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2049_log_request_stat_edge_server_2.csv"
+        },
+        {
+          "server": "edge_server_3",
+          "type": "request",
+          "fp": "cat_2023-10-31T2049_log_request_edge_server_3.csv"
+        },
+        {
+          "server": "edge_server_3",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2049_log_request_stat_edge_server_3.csv"
+        },
+        {
+          "server": "edge_server_4",
+          "type": "request",
+          "fp": "cat_2023-10-31T2049_log_request_edge_server_4.csv"
+        },
+        {
+          "server": "edge_server_4",
+          "type": "request_stats",
+          "fp": "cat_2023-10-31T2049_log_request_stat_edge_server_4.csv"
+        }
+      ],
+      "depths": {
+        "base_server": 1,
+        "edge_server_0": 2,
+        "edge_server_1": 2,
+        "edge_server_2": 2,
+        "edge_server_3": 2,
+        "edge_server_4": 2
+      }
+    }
+  }
+]

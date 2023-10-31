@@ -16,7 +16,7 @@ import numpy as np
 
 CONF_HIST_FILENAME = 'hist.json'
 SAVE_HIST = True
-PRUNE_HIST = True # set to false to be able to evaluate multiple configuration
+PRUNE_HIST = False # set to false to be able to evaluate multiple configuration
 
 class SIM_MODE_ENUM(Enum):
   cache_aside = auto()
@@ -25,7 +25,7 @@ class SIM_MODE_ENUM(Enum):
   federated = auto()
 
 sim_conf = {
-  'conf_name': 'cache_aside_test',
+  'conf_name': 'cache_aside_4div10_alloc',
   'conf_prfx': 'cat',
   'conf_ts': time.strftime('%Y-%m-%dT%H%M'),
 
@@ -52,8 +52,8 @@ sim_conf = {
   'network_conf': {
     'num_edge': 5, # number of user-end (edge/client) groups, previously `num_cl`
     'cache_ttl': 99999,
-    'base_server_alloc_frac': .8,
-    'edge_server_alloc_frac': .2,
+    'base_server_alloc_frac': 1,
+    'edge_server_alloc_frac': .4,
   }
 }
 
