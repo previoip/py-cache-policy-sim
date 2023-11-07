@@ -11,35 +11,55 @@ CONF_HIST_FILENAME = 'hist.json'
 FIG_EXPORT_PATH = './fig'
 
 class TELECOM_EVAL:
+  # param naming convention: {kind; c, rng}_{varname}_{[super]}_{[sub]}
 
   class PARAMS:
-    uniform_hy = 1 # assumes all content have same sizes
+    seed = 1337
+    uniform_hy = 1      # kb           assumes all content have same sizes
 
-  class DR_CONST:
-                  # (unit),       (desc)
-    b_m   = 50e6  # Hz            bandwidth (edge -> users)
-    P_m   = 24    # W, dBm        transmission power (edge -> users)
-    # G_m         # [0, 1]        channel gain range (edge -> users)
-    omega = -163  # W/hz, dBm/Hz  power density over noise
-    B_m   = 100e6 # Hz            bandwidth (base -> edge)
-    P_cs  = 30    # W, dBm        transmission power (base -> edge)
-    # G_cs        # [0, 1]        channel gain range (base -> edge)
+    class USER_PARAM:
+      val_h__xm           = 1           # kb           assumes all content have same sizes
+      rng_gamma_r_xm      = (0.03, 0.1)  
+      rng_gamma_dl_xm     = (5.0, 10.0)  
+
+    class SIM_PARAM:
+      val_delta__m        = 10e9
+      val_delta__bs       = 50e9
+      val_delta__CNC      = 100e9
+      val_c__xm           = 1500e3
+      val_b__m            = 20e6      # Hz            bandwidth (edge -> users)
+      val_B__CS           = 100e6     # Hz    bandwidth (base -> edge)
+      val_omega__         = -163      # W/hz, dBm/Hz  power density over noise
+      # b_m   = 50e6  
+      # P_m   = 24    # W, dBm        transmission power (edge -> users)
+      # G_m           # [0, 1]        channel gain range (edge -> users)
+      # B_m   = 100e6 # Hz            
+      # P_cs  = 30    # W, dBm        transmission power (base -> edge)
+      # G_cs          # [0, 1]        channel gain range (base -> edge)
 
   @staticmethod
-  def _content_delivery(Vxy, hy, rx, R):
-    return (Vxy * hy / rx) + ((1 - Vxy) * ((hy / R) + (hy / rx)))
+  def _request_delay(h, R):
+    return h / R
+
+  @classmethod
+  def request_delay(cls, df):
+    return cls._request_delay(df['h'], df['R'])
+
+  @staticmethod
+  def _content_delivery(Vxy, h, rx, R):
+    return (Vxy * h / rx) + ((1 - Vxy) * ((h / R) + (h / rx)))
 
   @classmethod
   def content_delivery(cls, df):
-    return cls._content_delivery(df['Vxy'], df['hy'], df['rx'], df['R'])
+    return cls._content_delivery(df['Vxy'], df['h'], df['rx'], df['R'])
 
   @staticmethod
   def _communication_energy_cost(dxy, P_m, dy, P_cs):
     return (dxy * P_m) + (dy * P_cs)
 
-  @classmethod
-  def communication_energy_cost(cls, df):
-    return cls._communication_energy_cost(df['dxy'], cls.DR_CONST.P_m, df['dy'], cls.DR_CONST.P_cs)
+  # @classmethod
+  # def communication_energy_cost(cls, df):
+  #   return cls._communication_energy_cost(df['dxy'], cls.DR_CONST.P_m, df['dy'], cls.DR_CONST.P_cs)
 
 
 # helpers:
@@ -82,7 +102,7 @@ def read_and_concat_dfs(hist_record):
   for log_file_record in hist_record.results['log_files']:
     if log_file_record['type'] != 'request_stats':
       continue
-    log_df = pd.read_csv(os.path.join(log_folder, log_file_record['fp']), sep=';')
+    log_df = pd.read_csv(os.path.join(log_folder, log_file_record['fp']), sep=';', index_col=0)
     log_df['server'] = log_file_record['server']
     _log_dfs.append(log_df)
   log_df = pd.concat(_log_dfs)
@@ -120,8 +140,21 @@ def argparse_setup():
   subargp_filter.add_argument('--status')
   return parser
 
+def plot_histogram(plt, res_dict, res_ctx):
+  data = dict()
+  for config_name in res_dict.keys():
+    val = res_dict[config_name].get(res_ctx)
+    if val is None:
+      continue
+    data[config_name] = val
+  if data:
+    plt.bar(*zip(*data.items()))
+  return plt
+
+
 
 if __name__ == '__main__':
+  np.random.seed(TELECOM_EVAL.PARAMS.seed)
 
   parser = argparse_setup()
   parsed_args = vars(parser.parse_args())
@@ -143,45 +176,79 @@ if __name__ == '__main__':
     log_df = read_and_concat_dfs(config_hist_record)
     log_df = filter_df(log_df, parsed_args)
 
-    server_names_ls = log_df['server'].unique()
+    # store server depth for future use
+    log_df['depth'] = log_df['server'].apply(lambda x: config_hist_record.results['depths'].get(x))
 
-    # sort again by timestamp for good measure
-    log_df.sort_values(by='timestamp', inplace=True)
+    # sort by timestamp request_id and depth for good measure
+    log_df.sort_values(by=['timestamp', 'request_id', 'depth'], ascending=[True, True, False], inplace=True)
 
-    # check df prior preproc
-    print()
-    print('log dataframe:')
-    print(log_df)
+    # eval V__xy predicate
+    log_df['V__xy'] = np.where((log_df['status'].apply(lambda x: str(x).lower().endswith('hit'))), 1, 0)
 
+    # hackish way to get edge-user download rate with even random distibution
+    # scoped to avoid unecessary variable contamination
+    def __1():
+      # define a mask to exclude base_server
+      mask_ls_edge_to_user_id = log_df['server'] != 'base_server'
+      # 'serialize' as string for each edge server to user as strin to get unique pairs
+      ls_edge_to_user_id = (log_df[mask_ls_edge_to_user_id]['server'] + '|' + log_df[mask_ls_edge_to_user_id]['user_id'].map(str)).sort_values().unique()
+      # store the length
+      len_edge_to_user_id = len(ls_edge_to_user_id) 
+      # define the divisors based on the length with range func
+      dl_edge_to_user_id = range(len_edge_to_user_id)
+      # perform linear interpolation based on range divisors and download rate param
+      lambda_lin_interp = lambda x1, y1, x2, y2, x: y1 + ((y1 - y2) / (x1 - x2) * x)
+      dl_edge_to_user_id = map(lambda x: lambda_lin_interp(1, TELECOM_EVAL.PARAMS.USER_PARAM.rng_gamma_r_xm[0], len_edge_to_user_id, TELECOM_EVAL.PARAMS.USER_PARAM.rng_gamma_r_xm[1], x), dl_edge_to_user_id)
+      dl_edge_to_user_id = list(dl_edge_to_user_id)
+      np.random.shuffle(dl_edge_to_user_id)
+      # store shuffled edge-user download rate as mappable object
+      dl_edge_to_user_id = dict(zip(ls_edge_to_user_id, dl_edge_to_user_id))
 
-    # eval Vxy predicate
-    log_df['Vxy'] = np.where((log_df['status'].apply(lambda x: str(x).lower().endswith('hit'))), 1, 0)
+      # now do the same with base-edge
+      ls_base_to_edge = log_df[mask_ls_edge_to_user_id]['server'].sort_values().unique()
+      len_ls_base_to_edge = len(ls_base_to_edge) 
+      dl_base_to_edge = range(len_ls_base_to_edge)
+      dl_base_to_edge = map(lambda x: lambda_lin_interp(1, TELECOM_EVAL.PARAMS.USER_PARAM.rng_gamma_dl_xm[0], len_ls_base_to_edge, TELECOM_EVAL.PARAMS.USER_PARAM.rng_gamma_dl_xm[1], x), dl_base_to_edge)
+      dl_base_to_edge = list(dl_base_to_edge)
+      np.random.shuffle(dl_base_to_edge)
+      dl_base_to_edge = dict(zip(ls_base_to_edge, dl_base_to_edge))
 
-    # sizeof as hy per content_id (or uniform)
+      # to determine which rate is uzed in log_df, check whether request propagates to base server (missed)
+      log_it = log_df.itertuples()
+      R = []
+      for n, row in enumerate(log_it):
+        if not row.server.startswith('base') and row.status.endswith('missed'):
+          next(log_it)
+          R.append(dl_edge_to_user_id.get(row.server + '|' + str(row.user_id), 0))
+          R.append(dl_base_to_edge.get(row.server, 0))
+        else:
+          R.append(dl_edge_to_user_id.get(row.server + '|' + str(row.user_id), 0))
+      log_df['R'] = R
+      del R
+
+      print(dl_edge_to_user_id.get('edge_server_3|728'))
+
+    __1()
+    
+
+    # sizeof as hy per content_id (or a constant value)
     if 'sizeof' in log_df.columns:
-      log_df['hy'] = log_df['sizeof']
+      log_df['h'] = log_df['sizeof']
     else:
-      log_df['hy'] = TELECOM_EVAL.PARAMS.uniform_hy
+      log_df['h'] = TELECOM_EVAL.PARAMS.USER_PARAM.val_h__xm
 
-    # !!! experiment: R transmission rate is proportional to inverse node depth attribute
-    log_df['R'] = log_df['server'].apply(lambda x: 1 / float(config_hist_record.results['depths'].get(x)))
+    log_df['T'] = TELECOM_EVAL.request_delay(log_df)
 
-    # !!! experiment: rx downlink transmission rate is proportional to R squared
-    log_df['rx'] = log_df['R'] ** 2
-
-    # reeval for dy
-    log_df['dy'] = log_df['hy'] / log_df['R']
 
     # ================================================
     # begin
-
-    log_df['dxy'] = TELECOM_EVAL.content_delivery(log_df)
-    log_df['Ecom'] = TELECOM_EVAL.communication_energy_cost(log_df)
 
     # check evaluated df
     print()
     print('evaluated log dataframe:')
     print(log_df)
+
+    exit()
 
     # server aggregates
     agg_df = log_df[['server', 'dxy', 'Ecom']]
@@ -206,28 +273,16 @@ if __name__ == '__main__':
 
 plt.rcParams["figure.figsize"] = (8, 4)
 
-# > plot for dxy delay
-
-d_plot_dxy = dict()
-for config_name in eval_results.keys():
-  val = eval_results[config_name]['dxy']
-  d_plot_dxy[config_name] = val
-
-plt.bar(*zip(*d_plot_dxy.items()))
+# > plot for dxy delay average
+plt = plot_histogram(plt, eval_results, 'dxy')
 if do_save_figs:
   plt.savefig(os.path.join(FIG_EXPORT_PATH, 'dxy.png'))
 else:
   plt.show()
 plt.close()
 
-# > plot for Ecom consumption
-
-d_plot_dxy = dict()
-for config_name in eval_results.keys():
-  val = eval_results[config_name]['Ecom']
-  d_plot_dxy[config_name] = val
-
-plt.bar(*zip(*d_plot_dxy.items()))
+# > plot for Ecom consumption average
+plt = plot_histogram(plt, eval_results, 'Ecom')
 if do_save_figs:
   plt.savefig(os.path.join(FIG_EXPORT_PATH, 'Ecom.png'))
 else:
