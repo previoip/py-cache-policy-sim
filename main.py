@@ -2,7 +2,6 @@ from src.pseudo_server import Server
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.pseudo_database import PandasDataFramePDB
 from src.event import event_thread_worker_sleep_controller
-# from src.model.randomized_svd import RandomizedSVD
 from src.model.daisy_monkeypatch import RECSYS_MODEL_ENUM
 from collections import Counter
 from enum import Enum, auto
@@ -13,16 +12,18 @@ import tqdm
 import queue
 import threading
 import numpy as np
+import argparse
+
 
 CONF_HIST_FILENAME = 'hist.json'
 SAVE_HIST = True
 PRUNE_HIST = False # set to false to be able to evaluate multiple configuration
 
-class SIM_MODE_ENUM(Enum):
-  cache_aside = auto()
-  centralized = auto()
-  localized = auto()
-  federated = auto()
+class SIM_MODE_ENUM:
+  cache_aside = 'cache_aside'
+  centralized = 'centralized'
+  localized = 'localized'
+  federated = 'federated'
 
 sim_conf = {
   'conf_name': 'cache_aside_4div10_alloc',
@@ -37,6 +38,7 @@ sim_conf = {
     'trial_cutoff': 100_000,
     'dump_logs': True,
     'dump_configs': True,
+    'print_mermaid_md': False,
     'round_at_n_iter': 5000,
     'log_folder': './log',
     'filename_template_log_req': 'log_request_{}.csv',
@@ -56,6 +58,46 @@ sim_conf = {
     'edge_server_alloc_frac': .4,
   }
 }
+
+def argparse_setup():
+  parser = argparse.ArgumentParser()
+  subargp = parser.add_subparsers()
+  for conf_key in sim_conf.keys():
+    conf_val = sim_conf.get(conf_key)
+
+    if not isinstance(conf_val, dict):
+      if not isinstance(conf_val, (int, float, str, bool)):
+        continue
+      parser.add_argument(f'--{conf_key}', default=conf_val, type=type(conf_val))
+
+    else:
+      # subparser = subargp.add_parser(conf_key)
+      for subconf_key in conf_val.keys():
+        if not isinstance(conf_val.get(subconf_key), (int, float, str, bool)):
+          continue
+        # subparser.add_argument(f'--{subconf_key}', default=conf_val.get(subconf_key))
+        parser.add_argument(f'--{subconf_key}', default=conf_val.get(subconf_key), type=type(conf_val.get(subconf_key)))
+
+  return parser
+
+def argparse_conf_unflatten(parsed_args):
+  parsed_args = vars(parsed_args)
+  unflattened = dict()
+  for conf_key in sim_conf.keys():
+    conf_val = sim_conf.get(conf_key)
+    if isinstance(conf_val, dict):
+      unflattened[conf_key] = dict()
+      for subconf_key in conf_val.keys():
+        parsed_val = parsed_args.get(subconf_key)
+        if parsed_val is None:
+          parsed_val = sim_conf[conf_key].get(subconf_key)
+        unflattened[conf_key][subconf_key] = parsed_val
+    else:
+      parsed_val = parsed_args.get(conf_key)
+      if parsed_val is None:
+        parsed_val = sim_conf.get(conf_key)
+      unflattened[conf_key] = parsed_val
+  return unflattened
 
 
 def prepare_request_df(data_loader, sort_by='unix_timestamp'):
@@ -113,6 +155,12 @@ def override_daisy_config(daisy_config):
   
 
 if __name__ == '__main__':
+
+  parser = argparse_setup()
+  parsed_args = parser.parse_args()
+
+  sim_conf.update(argparse_conf_unflatten(parsed_args))
+  print(sim_conf)
 
   sim_mode = sim_conf['general']['mode']
 
@@ -363,10 +411,11 @@ if __name__ == '__main__':
     if sim_mode != SIM_MODE_ENUM.cache_aside:
       sim_conf['results'].update({'model_configs': model_configs})
 
-  print()
-  print('mermaid graph repr:')
-  for edges in base_server.recurse_edges():
-    print(edges.graph_repr())
+  if sim_conf['general']['print_mermaid_md']:
+    print()
+    print('mermaid graph repr:')
+    for edges in base_server.recurse_edges():
+      print(edges.graph_repr())
 
   if PRUNE_HIST:
     if os.path.exists(CONF_HIST_FILENAME) and \
