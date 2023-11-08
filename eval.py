@@ -106,6 +106,7 @@ def read_and_concat_dfs(hist_record):
     log_df['server'] = log_file_record['server']
     _log_dfs.append(log_df)
   log_df = pd.concat(_log_dfs)
+  log_df.sort_values(by=['timestamp', 'request_id'], ascending=[True, True], inplace=True)
   log_df.reset_index(inplace=True, drop=True)
   return log_df
 
@@ -154,8 +155,6 @@ def plot_histogram(plt, res_dict, res_ctx):
 
 
 if __name__ == '__main__':
-  np.random.seed(TELECOM_EVAL.PARAMS.seed)
-
   parser = argparse_setup()
   parsed_args = vars(parser.parse_args())
   eval_results = dict()
@@ -171,13 +170,18 @@ if __name__ == '__main__':
     print()
     print('evaluating:', config_hist_record.hist_name, config_hist_record.hist_timestamp)
 
+    np.random.seed(TELECOM_EVAL.PARAMS.seed)
+
     eval_results[config_hist_record.hist_name] = dict()
 
     log_df = read_and_concat_dfs(config_hist_record)
     log_df = filter_df(log_df, parsed_args)
 
+    log_df['timestamp'] -= log_df['timestamp'].min()
+
     # store server depth for future use
     log_df['depth'] = log_df['server'].apply(lambda x: config_hist_record.results['depths'].get(x))
+    log_df['timestamp']
 
     # sort by timestamp request_id and depth for good measure
     log_df.sort_values(by=['timestamp', 'request_id', 'depth'], ascending=[True, True, False], inplace=True)
@@ -217,16 +221,12 @@ if __name__ == '__main__':
       log_it = log_df.itertuples()
       R = []
       for n, row in enumerate(log_it):
+        R.append(dl_edge_to_user_id.get(row.server + '|' + str(row.user_id), 0))
         if not row.server.startswith('base') and row.status.endswith('missed'):
-          next(log_it)
-          R.append(dl_edge_to_user_id.get(row.server + '|' + str(row.user_id), 0))
           R.append(dl_base_to_edge.get(row.server, 0))
-        else:
-          R.append(dl_edge_to_user_id.get(row.server + '|' + str(row.user_id), 0))
+          next(log_it)
       log_df['R'] = R
       del R
-
-      print(dl_edge_to_user_id.get('edge_server_3|728'))
 
     __1()
     
@@ -237,7 +237,7 @@ if __name__ == '__main__':
     else:
       log_df['h'] = TELECOM_EVAL.PARAMS.USER_PARAM.val_h__xm
 
-    log_df['T'] = TELECOM_EVAL.request_delay(log_df)
+    log_df['d_r'] = TELECOM_EVAL.request_delay(log_df)
 
 
     # ================================================
@@ -248,7 +248,7 @@ if __name__ == '__main__':
     print('evaluated log dataframe:')
     print(log_df)
 
-    exit()
+    continue
 
     # server aggregates
     agg_df = log_df[['server', 'dxy', 'Ecom']]

@@ -53,7 +53,9 @@ def __mpd_assert_arg_type(fn):
   # asserts arg type decorator
   @wraps(fn)
   def wrapper(self, o_ls: t.Iterable):
-    assert all(map(lambda s, x: isinstance(x, s), zip(o_ls, [self]*len(list(o_ls)))))
+    for o in o_ls:
+      if not isinstance(self, o.__class__):
+        raise TypeError('args does not have same type')
     return fn(self, o_ls)
   return wrapper
 
