@@ -19,8 +19,8 @@ class TELECOM_EVAL:
 
     class USER_PARAM:
       val_h__xm           = 1           # kb           assumes all content have same sizes
-      rng_gamma_r_xm      = (0.03, 0.1)  
-      rng_gamma_dl_xm     = (5.0, 10.0)  
+      rng_gamma_r_xm      = (0.3, 1   ) # (0.03, 0.1)  
+      rng_gamma_dl_xm     = (5.0, 10.0)
 
     class SIM_PARAM:
       val_delta__m        = 10e9
@@ -141,17 +141,17 @@ def argparse_setup():
   subargp_filter.add_argument('--status')
   return parser
 
-def plot_histogram(plt, res_dict, res_ctx):
+def plot_helper(plt, res_dict, res_ctx, plotter=plt.bar):
   data = dict()
   for config_name in res_dict.keys():
     val = res_dict[config_name].get(res_ctx)
     if val is None:
       continue
-    data[config_name] = val
+    label = config_name.split('_')[-1]
+    data[label] = val
   if data:
-    plt.bar(*zip(*data.items()))
+    plotter(*zip(*data.items()))
   return plt
-
 
 
 if __name__ == '__main__':
@@ -239,6 +239,7 @@ if __name__ == '__main__':
 
     log_df['d_r'] = TELECOM_EVAL.request_delay(log_df)
 
+    # print(log_df[['server', 'status', 'h', 'R', 'd_r']])
 
     # ================================================
     # begin
@@ -248,43 +249,41 @@ if __name__ == '__main__':
     print('evaluated log dataframe:')
     print(log_df)
 
-    continue
-
     # server aggregates
-    agg_df = log_df[['server', 'dxy', 'Ecom']]
-    agg_gr = agg_df.groupby('server')
-    agg_df = log_df[['dxy', 'Ecom']]
+    agg_gr_serv = log_df[['server', 'd_r', 'R']].groupby('server')
+    agg_gr_user = log_df[['request_id', 'd_r', 'R']].groupby('request_id')
 
-    per_server_metrics = agg_gr.agg(np.average)
+    per_server_metrics = agg_gr_serv[['d_r', 'R']].agg(np.average)
     print()
     print('average metrics per server:')
     print(per_server_metrics)
 
-    overall_server_metrics = agg_df.agg(np.average)
+    overall_server_metrics = agg_gr_user[['d_r', 'R']].agg('sum').agg(np.average)
     print()
     print('average metrics overall:')
     print(overall_server_metrics)
     print()
 
-    eval_results[config_hist_record.hist_name]['dxy'] = overall_server_metrics['dxy']
-    eval_results[config_hist_record.hist_name]['Ecom'] = overall_server_metrics['Ecom']
+    eval_results[config_hist_record.hist_name]['avg_d_r'] = overall_server_metrics['d_r']
 
 # see aggregates in plt figures
 
 plt.rcParams["figure.figsize"] = (8, 4)
 
-# > plot for dxy delay average
-plt = plot_histogram(plt, eval_results, 'dxy')
-if do_save_figs:
-  plt.savefig(os.path.join(FIG_EXPORT_PATH, 'dxy.png'))
-else:
-  plt.show()
-plt.close()
+def show_and_close(plt, save_fpath):
+  if do_save_figs:
+    plt.savefig(os.path.join(FIG_EXPORT_PATH, save_fpath))
+  else:
+    plt.show()
+  plt.close()
 
-# > plot for Ecom consumption average
-plt = plot_histogram(plt, eval_results, 'Ecom')
-if do_save_figs:
-  plt.savefig(os.path.join(FIG_EXPORT_PATH, 'Ecom.png'))
-else:
-  plt.show()
-plt.close()
+plt = plot_helper(plt, eval_results, 'avg_d_r')
+plt.title('Average Request Delay')
+show_and_close(plt, 'delay_bar.png')
+
+plt = plot_helper(plt, eval_results, 'avg_d_r', plotter=plt.plot)
+plt.title('Average Request Delay')
+show_and_close(plt, 'delay.png')
+
+
+

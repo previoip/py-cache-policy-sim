@@ -3,6 +3,8 @@ import subprocess
 import itertools
 
 BASE_ARGS = ['python3', 'main.py']
+PRUNE_PREVIOUS_RESULTS = False
+
 
 class SIMUL_CONF:
   modes = [SIM_MODE_ENUM.cache_aside]
@@ -23,13 +25,14 @@ def proc_del_sim_results():
     shutil.rmtree('log')
 
 if __name__ == '__main__':
-  proc_del_sim_results()
+  if PRUNE_PREVIOUS_RESULTS:
+    proc_del_sim_results()
 
   for mode in SIMUL_CONF.modes:
     for round in SIMUL_CONF.rounds:
       for frac in SIMUL_CONF.edge_fracs:
         args = BASE_ARGS.copy()
-        args += ['--trial_cutoff', '10000'] # comment these out to simulate full dataset
+        # args += ['--trial_cutoff', '10000'] # comment these out to simulate full dataset
         args += ['--conf_prfx', f'{mode}_r{round}']
         args += ['--conf_name', f'{mode}_r{round}_{frac}'.replace('.', '')]
         args += ['--edge_server_alloc_frac', str(frac)]
