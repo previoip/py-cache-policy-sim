@@ -181,7 +181,6 @@ if __name__ == '__main__':
 
     # store server depth for future use
     log_df['depth'] = log_df['server'].apply(lambda x: config_hist_record.results['depths'].get(x))
-    log_df['timestamp']
 
     # sort by timestamp request_id and depth for good measure
     log_df.sort_values(by=['timestamp', 'request_id', 'depth'], ascending=[True, True, False], inplace=True)
@@ -249,9 +248,12 @@ if __name__ == '__main__':
     print('evaluated log dataframe:')
     print(log_df)
 
+
     # server aggregates
     agg_gr_serv = log_df[['server', 'd_r', 'R']].groupby('server')
     agg_gr_user = log_df[['request_id', 'd_r', 'R']].groupby('request_id')
+    agg_gr_user_exl_BS = log_df[log_df['server'] != 'base_server'][['request_id', 'd_r', 'R', 'V__xy']].groupby('request_id')
+
 
     per_server_metrics = agg_gr_serv[['d_r', 'R']].agg(np.average)
     print()
@@ -259,16 +261,18 @@ if __name__ == '__main__':
     print(per_server_metrics)
 
     overall_server_metrics = agg_gr_user[['d_r', 'R']].agg('sum').agg(np.average)
+    overall_server_metrics_exl_BS = agg_gr_user_exl_BS[['V__xy']].agg('sum').agg(np.average)
     print()
     print('average metrics overall:')
     print(overall_server_metrics)
     print()
 
     eval_results[config_hist_record.hist_name]['avg_d_r'] = overall_server_metrics['d_r']
+    eval_results[config_hist_record.hist_name]['V__xy'] = overall_server_metrics_exl_BS['V__xy']
 
 # see aggregates in plt figures
 
-plt.rcParams["figure.figsize"] = (8, 4)
+plt.rcParams["figure.figsize"] = (9, 3)
 
 def show_and_close(plt, save_fpath):
   if do_save_figs:
@@ -284,6 +288,10 @@ show_and_close(plt, 'delay_bar.png')
 plt = plot_helper(plt, eval_results, 'avg_d_r', plotter=plt.plot)
 plt.title('Average Request Delay')
 show_and_close(plt, 'delay.png')
+
+plt = plot_helper(plt, eval_results, 'V__xy', plotter=plt.plot)
+plt.title('Average Request Hit Rate')
+show_and_close(plt, 'hit.png')
 
 
 

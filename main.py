@@ -152,7 +152,40 @@ def override_daisy_config(daisy_config):
     # 'topk': int(len(item_df) * sim_conf['general']['recsys_model_topk_frac'])
   })
   
-  
+# pandas helper
+
+def fn_get_reqlog_container(server):
+  return server.request_log_database.get_container()  
+
+def fn_get_all_reqlog_container(servers):
+  req_log_dfs = []
+  for server in servers:
+    req_log = fn_get_all_reqlog_container(server)
+    if req_log is None or len(req_log) == 0:
+      continue
+    req_log_dfs.append(req_log.to_pd())
+  return req_log
+
+# server model train runner helper
+
+def fn_server_get_user_ids(server):
+  ls_request_log_database = server.request_log_database.get_container()
+  if ls_request_log_database is None:
+    return []
+  ls_users_ids = list(set([int(i.user_id) for i in ls_request_log_database]))
+  return ls_users_ids
+
+def fn_train_df_on_server(server, train_runner, req_log_df):
+  train_set, test_set, test_ur, total_train_ur = train_runner.split(req_log_df)
+
+  recsys_model = server.model
+  recsys_config = server.cfg.model_config
+  recsys_config.update({'train_ur': total_train_ur})
+  runner_preset = train_runner.get_train_runner(recsys_config)
+  model_runner = runner_preset()
+  model_runner(recsys_model, recsys_config, train_set)
+
+
 
 if __name__ == '__main__':
 
@@ -265,80 +298,113 @@ if __name__ == '__main__':
     content_request_param = EventParamContentRequest(row, edge_server, timestamp, user_id, item_id, value, 1)
     edge_server.event_manager.trigger_event('OnContentRequest', event_param=content_request_param)
 
+
     if sim_mode == SIM_MODE_ENUM.cache_aside:
-      # todo: additionnal for cache_aside mode tasks
+      # todo: additionnal for cache_aside mode tasks, 
+      # note for cache_aside caching is preformed after each request
       pass
 
     elif row % _round_at_n_iter == 0 and row != 0:
       # round checkpoint routine
 
       _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter}'.ljust(55))
-      event_thread_worker_sleep_controller.set()
-
-      # if sim_mode centralized:
-      if sim_mode == SIM_MODE_ENUM.centralized:
-        continue
-
-
-      # recurse all servers
       for server in base_server.recurse_nodes():
         server.block_until_finished()
+      event_thread_worker_sleep_controller.set()
 
-        # skip routine if its on the base server
-        if server.name == 'base_server':
+      to_be_cached_items_by_server = dict()
+      for server in base_server.recurse_nodes():
+        to_be_cached_items_by_server[server.name] = list()
+
+      # case cetralized learning
+      if sim_mode == SIM_MODE_ENUM.centralized:
+        servers = filter(lambda x: x.name != 'base_server' and x.is_leaf(), base_server.recurse_nodes())
+        req_log_dfs = map(lambda server: server.request_log_database.to_pd(use_cursor=True), servers)
+        req_log_dfs = filter(lambda df: not df is None or len(df) != 0, req_log_dfs)
+        req_log_dfs = list(req_log_dfs)
+        if len(req_log_dfs) == 0:
           continue
+        req_log_df = pd.concat(req_log_dfs)
+        # train combined request log df into base_server
+        fn_train_df_on_server(base_server, train_runner, req_log_df)
 
-        _tqdm_it_request.set_description(f'pausing... round ckpt: {(row + 1) // _round_at_n_iter} server {server.name}'.ljust(55))
+        for server in base_server.recurse_nodes():
+          to_be_cached_items = list()
+          user_ids = fn_server_get_user_ids(server)
+          for sel_user_id in user_ids:
+            ranks = list(base_server.model.full_rank(sel_user_id))
+            to_be_cached_items.extend(ranks)
+          to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count))
+          to_be_cached_items = [i[0] for i in to_be_cached_items]
+          to_be_cached_items_by_server[server.name].extend(to_be_cached_items)
+      # esac cetralized learning
 
-        # get current edge-server request log
-        ls_request_log_database = server.request_log_database.get_container()
-        if len(ls_request_log_database) == 0:
+      # case localized learning
+      elif sim_mode == SIM_MODE_ENUM.localized:
+        servers = filter(lambda x: True, base_server.recurse_nodes())
+        for server in servers:
+          req_log_df = server.request_log_database.to_pd(use_cursor=True)
+          if req_log_df is None or len(req_log_df) == 0:
+            continue
+          # train request log df on each server respectively
+          fn_train_df_on_server(server, train_runner, req_log_df)
+
+        for server in base_server.recurse_nodes():
+          to_be_cached_items = list()
+          user_ids = fn_server_get_user_ids(server)
+          for sel_user_id in user_ids:
+            ranks = list(server.model.full_rank(sel_user_id))
+            to_be_cached_items.extend(ranks)
+          to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count))
+          to_be_cached_items = [i[0] for i in to_be_cached_items]
+          to_be_cached_items_by_server[server.name].extend(to_be_cached_items)
+      # esac localized learning
+
+      # case federated learning
+      elif sim_mode == SIM_MODE_ENUM.federated:
+        servers = filter(lambda x: x.name != 'base_server' and x.is_leaf(), base_server.recurse_nodes())
+        for server in servers:
+          req_log_df = server.request_log_database.to_pd(use_cursor=True)
+          if req_log_df is None or len(req_log_df) == 0:
+            continue
+          # train request log df on each server
+          fn_train_df_on_server(server, train_runner, req_log_df)
+
+        # perform federated learning from each edge servers
+        base_server.model.fl_agg(list(map(lambda server: server.model, servers)))
+        base_server.model.fl_delegate_to(list(map(lambda server: server.model, servers)))
+
+        for server in base_server.recurse_nodes():
+          to_be_cached_items = list()
+          user_ids = fn_server_get_user_ids(server)
+          for sel_user_id in user_ids:
+            ranks = list(server.model.full_rank(sel_user_id))
+            to_be_cached_items.extend(ranks)
+          to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count))
+          to_be_cached_items = [i[0] for i in to_be_cached_items]
+          to_be_cached_items_by_server[server.name].extend(to_be_cached_items)
+      # esac federated learning
+
+      else:
+        raise ValueError(f'sim_mode is not valid enum value')
+
+      # distribute to be cached items to servers
+      for server in base_server.recurse_nodes():
+        to_be_cached_items = to_be_cached_items_by_server.get(server.name)
+        if to_be_cached_items is None or len(to_be_cached_items) == 0:
           continue
-
-        # train model on edge-server
-        ls_users = list(set([int(i.user_id) for i in ls_request_log_database]))
-
-        train_set, test_set, test_ur, total_train_ur = train_runner.split(server.request_log_database.to_pd(use_cursor=True))
-
-        recsys_model = server.model
-        recsys_config = server.cfg.model_config
-        recsys_config.update({'train_ur': total_train_ur})
-        runner_preset = train_runner.get_train_runner(recsys_config)
-        model_runner = runner_preset()
-
-        model_runner(recsys_model, recsys_config, train_set)
-
-        # if mode is federated, set edge-server model with aggregated base-server model
-        if sim_mode == SIM_MODE_ENUM.federated:
-          # todo
-          pass
-
-        to_be_cached_items = list()
-
-        for sel_user_id in ls_users:
-          to_be_cached_items.extend(list(recsys_model.full_rank(sel_user_id)))
-
-        to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count * .5))
-        to_be_cached_items = [i[0] for i in to_be_cached_items]
-        for _item_id in to_be_cached_items:
+        for cache_item_id in to_be_cached_items:
           cache_param = EventParamContentRequest(
               request_id=None,
               client=server,
               timestamp=timestamp,
               user_id=user_id,
-              item_id=_item_id,
+              item_id=cache_item_id,
               rating=None,
               item_size=1,
           )
           server.event_manager.trigger_event('SubCache', event_param=cache_param)
 
-      # if mode is federated, compile and aggregate edge-servers to base-server model
-      if sim_mode == SIM_MODE_ENUM.federated:
-        edge_models = filter(lambda x: x.name != 'base_server' and x.is_leaf(), base_server.recurse_nodes())
-        edge_models = map(lambda x: x.model, edge_models)
-        base_server.model.fl_agg(edge_models)
-        base_server.model.fl_delegate_to(edge_models)
-        
       event_thread_worker_sleep_controller.clear()
 
   print('waiting for all processes to finish...')
