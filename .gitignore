@@ -154,7 +154,8 @@ cython_debug/
 .vscode
 cache
 data
-playground.py
+playground*
 src/model/daisyRec
 difftemp
 patchtemp
+log
