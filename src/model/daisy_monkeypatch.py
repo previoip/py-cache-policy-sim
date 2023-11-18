@@ -77,15 +77,28 @@ def __mpd_assert_arg_type(fn):
 @__mpd_assert_arg_type
 def __mp_EASE_flAgg(self, other_models: t.Iterable):
   print('called __mp_EASE_flAgg')
-  print('reg_weight', self.reg_weight, type(self.reg_weight))
-  # print('item_similarity', self.item_similarity, type(self.item_similarity))
-  print('interaction_matrix', self.interaction_matrix, type(self.interaction_matrix))
-  
+
+  n = len(other_models) + 1
+  for other_model in other_models:
+    self.reg_weight += other_model.reg_weight
+    self.interaction_matrix += other_model.interaction_matrix
+
+  self.reg_weight /= n
+  self.interaction_matrix /= n
+
+  # print('reg_weight', self.reg_weight, type(self.reg_weight))
+  # print('interaction_matrix', self.interaction_matrix, type(self.interaction_matrix))
+
 EASE.fl_agg = __mp_EASE_flAgg
+
 
 @__mpd_assert_arg_type
 def __mp_EASE_flDelegate(self, other_models: t.Iterable):
   print('called __mp_EASE_flDelegate')
+
+  for other_model in other_models:
+    other_model.reg_weight = self.reg_weight
+    other_model.interaction_matrix = self.interaction_matrix.copy()
 
 EASE.fl_delegate_to = __mp_EASE_flDelegate
 
@@ -96,17 +109,28 @@ EASE.fl_delegate_to = __mp_EASE_flDelegate
 @__mpd_assert_arg_type
 def __mp_FM_flAgg(self, other_models: t.Iterable):
   print('called __mp_FM_flAgg')
-  print('embed_user', self.embed_user, type(self.embed_user))
-  print('embed_item', self.embed_item, type(self.embed_item))
-  print('u_bias', self.u_bias, type(self.u_bias))
-  print('i_bias', self.i_bias, type(self.i_bias))
-  print('bias_', self.bias_, type(self.bias_))
+  
+  attrs = ['embed_user', 'embed_item', 'u_bias', 'i_bias', 'bias_']
+  agg_avg_torch_tensors(self, other_models, attrs)
+
+  # print('embed_user', self.embed_user, type(self.embed_user))
+  # print('embed_item', self.embed_item, type(self.embed_item))
+  # print('u_bias', self.u_bias, type(self.u_bias))
+  # print('i_bias', self.i_bias, type(self.i_bias))
+  # print('bias_', self.bias_, type(self.bias_))
 
 FM.fl_agg = __mp_FM_flAgg
+
 
 @__mpd_assert_arg_type
 def __mp_FM_flDelegate(self, other_models: t.Iterable):
   print('called __mp_FM_flDelegate')
+  for other_model in other_models:
+    other_model.embed_user.load_state_dict(self.embed_user.state_dict())
+    other_model.embed_item.load_state_dict(self.embed_item.state_dict())
+    other_model.u_bias.load_state_dict(self.u_bias.state_dict())
+    other_model.i_bias.load_state_dict(self.i_bias.state_dict())
+    other_model.bias_.load_state_dict(self.bias_.state_dict())
 
 FM.fl_delegate_to = __mp_FM_flDelegate
 
@@ -117,14 +141,21 @@ FM.fl_delegate_to = __mp_FM_flDelegate
 @__mpd_assert_arg_type
 def __mp_Item2Vec_flAgg(self, other_models: t.Iterable):
   print('called __mp_Item2Vec_flAgg')
-  print('user_embedding', self.user_embedding, type(self.user_embedding))
-  print('shared_embedding', self.shared_embedding, type(self.shared_embedding))
+  attrs = ['user_embedding', 'shared_embedding']
+  agg_avg_torch_tensors(self, other_models, attrs)
+
+  # print('user_embedding', self.user_embedding, type(self.user_embedding))
+  # print('shared_embedding', self.shared_embedding, type(self.shared_embedding))
 
 Item2Vec.fl_agg = __mp_Item2Vec_flAgg
+
 
 @__mpd_assert_arg_type
 def __mp_Item2Vec_flDelegate(self, other_models: t.Iterable):
   print('called __mp_Item2Vec_flDelegate')
+  for other_model in other_models:
+    other_model.user_embedding.load_state_dict(self.user_embedding.state_dict())
+    other_model.shared_embedding.load_state_dict(self.shared_embedding.state_dict())
 
 Item2Vec.fl_delegate_to = __mp_Item2Vec_flDelegate
 
@@ -135,13 +166,16 @@ Item2Vec.fl_delegate_to = __mp_Item2Vec_flDelegate
 @__mpd_assert_arg_type
 def __mp_ItemKNNCF_flAgg(self, other_models: t.Iterable):
   print('called __mp_ItemKNNCF_flAgg')
+  raise NotImplementedError('fl patch is not yet implemented')
   print('pred_mat', self.pred_mat, type(self.pred_mat))
 
 ItemKNNCF.fl_agg = __mp_ItemKNNCF_flAgg
 
+
 @__mpd_assert_arg_type
 def __mp_ItemKNNCF_flDelegate(self, other_models: t.Iterable):
   print('called __mp_ItemKNNCF_flDelegate')
+  raise NotImplementedError('fl patch is not yet implemented')
 
 ItemKNNCF.fl_delegate_to = __mp_ItemKNNCF_flDelegate
 
@@ -152,10 +186,12 @@ ItemKNNCF.fl_delegate_to = __mp_ItemKNNCF_flDelegate
 @__mpd_assert_arg_type
 def __mp_LightGCN_flAgg(self, other_models: t.Iterable):
   print('called __mp_LightGCN_flAgg')
+  raise NotImplementedError('fl patch is not yet implemented')
   print('restore_user_e', self.restore_user_e, type(self.restore_user_e))
   print('restore_item_e', self.restore_item_e, type(self.restore_item_e))
 
 LightGCN.fl_agg = __mp_LightGCN_flAgg
+
 
 @__mpd_assert_arg_type
 def __mp_LightGCN_flDelegate(self, other_models: t.Iterable):
@@ -170,13 +206,11 @@ LightGCN.fl_delegate_to = __mp_LightGCN_flDelegate
 @__mpd_assert_arg_type
 def __mp_MF_flAgg(self, other_models: t.Iterable):
   print('called __mp_MF_flAgg')
-
   attrs = ['embed_user', 'embed_item']
   agg_avg_torch_tensors(self, other_models, attrs)
 
   # print('embed_user', self.embed_user, type(self.embed_user))
   # print('embed_item', self.embed_item, type(self.embed_item))
-
 
 MF.fl_agg = __mp_MF_flAgg
 
@@ -197,18 +231,26 @@ MF.fl_delegate_to = __mp_MF_flDelegate
 @__mpd_assert_arg_type
 def __mp_NeuMF_flAgg(self, other_models: t.Iterable):
   print('called __mp_NeuMF_flAgg')
-  print('embed_user_GMF', self.embed_user_GMF, type(self.embed_user_GMF)) 
-  print('embed_user_MLP', self.embed_user_MLP, type(self.embed_user_MLP)) 
-  print('embed_item_GMF', self.embed_item_GMF, type(self.embed_item_GMF))
-  print('embed_item_MLP', self.embed_item_MLP, type(self.embed_item_MLP))
-  print('predict_layer', self.predict_layer, type(self.predict_layer))
+  attrs = ['embed_user_GMF', 'embed_user_MLP', 'embed_item_GMF', 'embed_item_MLP', 'predict_layer']
+  agg_avg_torch_tensors(self, other_models, attrs)
 
+  # print('embed_user_GMF', self.embed_user_GMF, type(self.embed_user_GMF)) 
+  # print('embed_user_MLP', self.embed_user_MLP, type(self.embed_user_MLP)) 
+  # print('embed_item_GMF', self.embed_item_GMF, type(self.embed_item_GMF))
+  # print('embed_item_MLP', self.embed_item_MLP, type(self.embed_item_MLP))
+  # print('predict_layer', self.predict_layer, type(self.predict_layer))
 
 NeuMF.fl_agg = __mp_NeuMF_flAgg
 
 @__mpd_assert_arg_type
 def __mp_NeuMF_flDelegate(self, other_models: t.Iterable):
   print('called __mp_NeuMF_flDelegate')
+  for other_model in other_models:
+    other_model.embed_user_GMF.load_state_dict(self.embed_user_GMF.state_dict())
+    other_model.embed_user_MLP.load_state_dict(self.embed_user_MLP.state_dict())
+    other_model.embed_item_GMF.load_state_dict(self.embed_item_GMF.state_dict())
+    other_model.embed_item_MLP.load_state_dict(self.embed_item_MLP.state_dict())
+    other_model.predict_layer.load_state_dict(self.predict_layer.state_dict())
 
 NeuMF.fl_delegate_to = __mp_NeuMF_flDelegate
 
@@ -219,14 +261,17 @@ NeuMF.fl_delegate_to = __mp_NeuMF_flDelegate
 @__mpd_assert_arg_type
 def __mp_NFM_flAgg(self, other_models: t.Iterable):
   print('called __mp_NFM_flAgg')
+  raise NotImplementedError('fl patch is not yet implemented')
   print('deep_layers', self.deep_layers, type(self.deep_layers))
   print('prediction', self.prediction, type(self.prediction))
 
 NFM.fl_agg = __mp_NFM_flAgg
 
+
 @__mpd_assert_arg_type
 def __mp_NFM_flDelegate(self, other_models: t.Iterable):
   print('called __mp_NFM_flDelegate')
+  raise NotImplementedError('fl patch is not yet implemented')
 
 NFM.fl_delegate_to = __mp_NFM_flDelegate
 
@@ -237,15 +282,18 @@ NFM.fl_delegate_to = __mp_NFM_flDelegate
 @__mpd_assert_arg_type
 def __mp_NGCF_flAgg(self, other_models: t.Iterable):
   print('called __mp_NGCF_flAgg')
+  raise NotImplementedError('fl patch is not yet implemented')
   print('embed_user', self.embed_user, type(self.embed_user))
   print('embed_item', self.embed_item, type(self.embed_item))
   print('gnn_layers', self.gnn_layers, type(self.gnn_layers))
 
 NGCF.fl_agg = __mp_NGCF_flAgg
 
+
 @__mpd_assert_arg_type
 def __mp_NGCF_flDelegate(self, other_models: t.Iterable):
   print('called __mp_NGCF_flDelegate')
+  raise NotImplementedError('fl patch is not yet implemented')
 
 NGCF.fl_delegate_to = __mp_NGCF_flDelegate
 
@@ -256,13 +304,21 @@ NGCF.fl_delegate_to = __mp_NGCF_flDelegate
 @__mpd_assert_arg_type
 def __mp_MostPop_flAgg(self, other_models: t.Iterable):
   print('called __mp_MostPop_flAgg')
-  print('item_score', self.item_score, type(self.item_score))
+  n = len(other_models) + 1
+  for other_model in other_models:
+    self.item_score += other_model.item_score
+  self.item_score /= n
+
+  # print('item_score', self.item_score, type(self.item_score))
 
 MostPop.fl_agg = __mp_MostPop_flAgg
+
 
 @__mpd_assert_arg_type
 def __mp_MostPop_flDelegate(self, other_models: t.Iterable):
   print('called __mp_MostPop_flDelegate')
+  for other_model in other_models:
+    other_model.item_score = self.item_score.copy()
 
 MostPop.fl_delegate_to = __mp_MostPop_flDelegate
 
@@ -273,14 +329,17 @@ MostPop.fl_delegate_to = __mp_MostPop_flDelegate
 @__mpd_assert_arg_type
 def __mp_PureSVD_flAgg(self, other_models: t.Iterable):
   print('called __mp_PureSVD_flAgg')
+  raise NotImplementedError('fl patch is not yet implemented')
   print('user_vec', self.user_vec, type(self.user_vec))
   print('item_vec', self.item_vec, type(self.item_vec))
 
 PureSVD.fl_agg = __mp_PureSVD_flAgg
 
+
 @__mpd_assert_arg_type
 def __mp_PureSVD_flDelegate(self, other_models: t.Iterable):
   print('called __mp_PureSVD_flDelegate')
+  raise NotImplementedError('fl patch is not yet implemented')
 
 PureSVD.fl_delegate_to = __mp_PureSVD_flDelegate
 
@@ -291,14 +350,17 @@ PureSVD.fl_delegate_to = __mp_PureSVD_flDelegate
 @__mpd_assert_arg_type
 def __mp_SLiM_flAgg(self, other_models: t.Iterable):
   print('called __mp_SLiM_flAgg')
+  raise NotImplementedError('fl patch is not yet implemented')
   print('A_tilde', self.A_tilde, type(self.A_tilde))
   print('w_sparse', self.w_sparse, type(self.w_sparse))
 
 SLiM.fl_agg = __mp_SLiM_flAgg
 
+
 @__mpd_assert_arg_type
 def __mp_SLiM_flDelegate(self, other_models: t.Iterable):
   print('called __mp_SLiM_flDelegate')
+  raise NotImplementedError('fl patch is not yet implemented')
 
 SLiM.fl_delegate_to = __mp_SLiM_flDelegate
 
@@ -309,6 +371,7 @@ SLiM.fl_delegate_to = __mp_SLiM_flDelegate
 @__mpd_assert_arg_type
 def __mp_VAECF_flAgg(self, other_models: t.Iterable):
   print('called __mp_VAECF_flAgg')
+  raise NotImplementedError('fl patch is not yet implemented')
   print('history_user_id', self.history_user_id, type(self.history_user_id))
   print('history_item_id', self.history_item_id, type(self.history_item_id))
   print('history_user_value', self.history_user_value, type(self.history_user_value))
@@ -316,9 +379,11 @@ def __mp_VAECF_flAgg(self, other_models: t.Iterable):
 
 VAECF.fl_agg = __mp_VAECF_flAgg
 
+
 @__mpd_assert_arg_type
 def __mp_VAECF_flDelegate(self, other_models: t.Iterable):
   print('called __mp_VAECF_flDelegate')
+  raise NotImplementedError('fl patch is not yet implemented')
 
 VAECF.fl_delegate_to = __mp_VAECF_flDelegate
 
