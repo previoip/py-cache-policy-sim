@@ -3,7 +3,7 @@ import subprocess
 import itertools
 from collections import namedtuple
 
-BASE_ARGS = ['python3', 'main.py']
+BASE_ARGS = ['python', 'main.py']
 
 PRUNE_PREVIOUS_RESULTS = True
 FRACS_RES = 1
@@ -26,19 +26,19 @@ class SIMUL_CONF:
 
   models = [
     None,
-    # RECSYS_MODEL_ENUM.ease,
-    # RECSYS_MODEL_ENUM.fm,
-    # RECSYS_MODEL_ENUM.item2vec,
-    # RECSYS_MODEL_ENUM.itemknn,
-    # RECSYS_MODEL_ENUM.lightgcn,
-    # RECSYS_MODEL_ENUM.mf,
-    # RECSYS_MODEL_ENUM.mostpop,
-    # RECSYS_MODEL_ENUM.multi_vae,
-    # RECSYS_MODEL_ENUM.neumf,
-    # RECSYS_MODEL_ENUM.nfm,
-    # RECSYS_MODEL_ENUM.ngcf,
-    # RECSYS_MODEL_ENUM.puresvd,
-    RECSYS_MODEL_ENUM.slim,
+    RECSYS_MODEL_ENUM.ease,
+    RECSYS_MODEL_ENUM.fm,
+    RECSYS_MODEL_ENUM.item2vec,
+    RECSYS_MODEL_ENUM.itemknn,
+    RECSYS_MODEL_ENUM.lightgcn,
+    RECSYS_MODEL_ENUM.mf,
+    RECSYS_MODEL_ENUM.mostpop,
+    RECSYS_MODEL_ENUM.multi_vae,
+    RECSYS_MODEL_ENUM.neumf,
+    RECSYS_MODEL_ENUM.nfm,
+    RECSYS_MODEL_ENUM.ngcf,
+    RECSYS_MODEL_ENUM.puresvd,
+    # RECSYS_MODEL_ENUM.slim, # Could not get it to work properly
   ]
 
   rounds = [1000] 

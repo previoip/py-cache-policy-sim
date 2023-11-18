@@ -17,9 +17,10 @@ def spawn_logger(name, log_path=None, level=logging.DEBUG) -> logging.Logger:
   logger = logging.getLogger(name)
   logger.setLevel(level)
 
-  dirname = os.path.dirname(log_path)
-  if not os.path.exists(dirname):
-    os.makedirs(dirname)
+  if not log_path is None:
+    dirname = os.path.dirname(log_path)
+    if not os.path.exists(dirname):
+      os.makedirs(dirname)
   
   if not logger.hasHandlers():
     if log_path is None:

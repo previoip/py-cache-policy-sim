@@ -4,7 +4,7 @@ import typing as t
 from functools import partial
 from enum import Enum
 from functools import wraps
-from src.logger_helper import spawn_logger
+from src.logger_helper import spawn_logger, init_default_logger
 from src.data_examples.ml_data_loader import ExampleDataLoader
 from src.model.model_abc import ABCRecSysModel
 from src.model.daisyRec.daisy.model.AbstractRecommender import AbstractRecommender, GeneralRecommender
@@ -26,7 +26,8 @@ from src.model.daisyRec.daisy.utils.sampler import BasicNegtiveSampler, SkipGram
 from src.model.daisyRec.daisy.utils.dataset import get_dataloader, BasicDataset, CandidatesDataset, AEDataset
 from src.model.daisyRec.daisy.utils.utils import ensure_dir, get_ur, get_history_matrix, build_candidates_set, get_inter_matrix
 
-DAISY_LOGGER = spawn_logger('daisy_log', './log/daisy_log')
+# DAISY_LOGGER = spawn_logger('daisy_log')
+DAISY_LOGGER = init_default_logger()
 
 class RECSYS_MODEL_ENUM:
   ease      = 'ease'
