@@ -32,11 +32,3 @@ Note: external resources needed to be downloaded using `retrieve_model.sh` befor
   year={2022}
 }
 ```
-
-
-# MOM 03-11-23
-
-- Plot hit-rate, delay, refer paper: A Dynamic Edge Caching Framework for Mobile 5G Networks
-- reference: https://drive.google.com/drive/u/1/folders/1aaLG5s0Y_cIW_JMXqAS37YnBxgrpsqaJ
-
-/home/phallus/Github/py-cache-policy-sim/src/model/daisyRec/daisy/utils/sampler.py:91: FutureWarning: using <function BasicNegtiveSampler.sampling.<locals>.<lambda> at 0x7f607bc537e0> in Series.agg cannot aggregate and has been deprecated. Use Series.transform to keep behavior unchanged.
