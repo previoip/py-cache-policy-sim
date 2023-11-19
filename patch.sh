@@ -49,8 +49,14 @@ if [ ! -d $tempfolder ]; then
     mkdir $tempfolder
 fi
 
-echo "patching Item2VecRecommender.py"
+echo "patching models/Item2VecRecommender.py"
 if [ ! -f $tempfolder/Item2VecRecommender.py ]; then
     cp src/model/daisyRec/daisy/model/Item2VecRecommender.py $tempfolder/Item2VecRecommender.py
 fi
 patch $tempfolder/Item2VecRecommender.py patches/item2vec.patch -o src/model/daisyRec/daisy/model/Item2VecRecommender.py
+
+echo "patching utils/sampler.py"
+if [ ! -f $tempfolder/sampler.py ]; then
+    cp src/model/daisyRec/daisy/utils/sampler.py $tempfolder/sampler.py
+fi
+patch $tempfolder/sampler.py patches/sampler.patch -o src/model/daisyRec/daisy/utils/sampler.py

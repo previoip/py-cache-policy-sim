@@ -1,0 +1,4 @@
+91c91
+<         self.df['neg_set'] = self.df[self.uid_name].agg(lambda u: js[u])
+---
+>         self.df['neg_set'] = self.df[self.uid_name].transform(lambda u: js[u])
