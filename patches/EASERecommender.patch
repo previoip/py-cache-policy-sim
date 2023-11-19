@@ -1,0 +1,8 @@
+29a30,32
+>         self.item_similarity = np.zeros((self.item_num, self.user_num))
+>         self.interaction_matrix = np.zeros((self.user_num, self.item_num))
+> 
+71c74
+<         return np.argsort(-scores)[:, :self.topk]
+---
+>         return np.argsort(-scores)[:self.topk]
