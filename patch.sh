@@ -49,12 +49,11 @@ if [ ! -d $tempfolder ]; then
     mkdir $tempfolder
 fi
 
-
 filename=""
 pathname=""
 patchdir="patches"
 recpatch(){
-    echo "patching models/$filename.py"
+    echo "patching $filename.py"
     if [ ! -f $tempfolder/$filename.py ]; then
         cp $pathname/$filename.py $tempfolder/$filename.py
     fi
@@ -62,44 +61,40 @@ recpatch(){
     echo    
 }
 
-filename="sampler"
 pathname="src/model/daisyRec/daisy/model"
+echo "patching dir $pathname"
+
+filename="sampler"
 recpatch
 
 filename="EASERecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
 filename="Item2VecRecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
 filename="KNNCFRecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
 filename="LightGCNRecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
 filename="NGCFRecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
 filename="PopRecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
 filename="PureSVDRecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
 filename="VAECFRecommender"
-pathname="src/model/daisyRec/daisy/model"
 recpatch
 
-filename="sampler"
 pathname="src/model/daisyRec/daisy/utils"
+echo "patching dir $pathname"
+
+filename="sampler"
 recpatch
 
 rm -rf $tempfolder
