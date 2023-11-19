@@ -149,7 +149,7 @@ def override_daisy_config(daisy_config):
   # custom daiy config overrides embedded as dict
   daisy_config.update({
     "test_size": 0.0,
-    'epochs': 1,
+    'epochs': 5,
     # 'topk': int(len(item_df) * sim_conf['general']['recsys_model_topk_frac'])
   })
   
@@ -402,6 +402,7 @@ if __name__ == '__main__':
         raise ValueError(f'sim_mode is not valid enum value')
 
       # distribute to be cached items to servers
+      print()
       for server in base_server.recurse_nodes():
         to_be_cached_items = to_be_cached_items_by_server.get(server.name)
         print('caching item for', server.name, 'with', len(to_be_cached_items), 'items.')
@@ -487,7 +488,10 @@ if __name__ == '__main__':
 
     model_configs = []
     for server in base_server.recurse_nodes():
-      model_configs.append({'server': server.name, 'type': 'daisy_config/json', 'value': server.cfg.model_config})
+      model_config = server.cfg.model_config
+      if model_config.get('train_ur') is not None:
+        model_config['train_ur'] = None
+      model_configs.append({'server': server.name, 'type': 'daisy_config/json', 'value': model_config})
     if sim_mode != SIM_MODE_ENUM.cache_aside:
       sim_conf['results'].update({'model_configs': model_configs})
 
