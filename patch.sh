@@ -55,6 +55,26 @@ if [ ! -f $tempfolder/Item2VecRecommender.py ]; then
 fi
 patch $tempfolder/Item2VecRecommender.py patches/item2vec.patch -o src/model/daisyRec/daisy/model/Item2VecRecommender.py
 
+echo "patching models/EASERecommender.py"
+if [ ! -f $tempfolder/EASERecommender.py ]; then
+    cp src/model/daisyRec/daisy/model/EASERecommender.py $tempfolder/EASERecommender.py
+fi
+patch $tempfolder/EASERecommender.py patches/EASERecommender.patch -o src/model/daisyRec/daisy/model/EASERecommender.py
+
+echo "patching models/KNNCFRecommender.py"
+if [ ! -f $tempfolder/KNNCFRecommender.py ]; then
+    cp src/model/daisyRec/daisy/model/KNNCFRecommender.py $tempfolder/KNNCFRecommender.py
+fi
+patch $tempfolder/KNNCFRecommender.py patches/KNNCFRecommender.patch -o src/model/daisyRec/daisy/model/KNNCFRecommender.py
+
+echo "patching models/LightGCNRecommender.py"
+if [ ! -f $tempfolder/LightGCNRecommender.py ]; then
+    cp src/model/daisyRec/daisy/model/LightGCNRecommender.py $tempfolder/LightGCNRecommender.py
+fi
+patch $tempfolder/LightGCNRecommender.py patches/LightGCNRecommender.patch -o src/model/daisyRec/daisy/model/LightGCNRecommender.py
+
+
+
 echo "patching utils/sampler.py"
 if [ ! -f $tempfolder/sampler.py ]; then
     cp src/model/daisyRec/daisy/utils/sampler.py $tempfolder/sampler.py

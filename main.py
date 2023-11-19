@@ -12,6 +12,7 @@ import tqdm
 import queue
 import threading
 import numpy as np
+import pandas as pd
 import argparse
 
 
@@ -34,7 +35,7 @@ sim_conf = {
     'rand_seed': 1337,
     'mode': SIM_MODE_ENUM.cache_aside,
     'recsys_model_name': RECSYS_MODEL_ENUM.mf,
-    'recsys_model_topk_frac': .5,
+    'recsys_model_topk_frac': .75,
     'trial_cutoff': 100_000,
     'dump_logs': True,
     'dump_configs': True,
@@ -52,7 +53,7 @@ sim_conf = {
   },
  
   'network_conf': {
-    'num_edge': 5, # number of user-end (edge/client) groups, previously `num_cl`
+    'num_edge': 3, # number of user-end (edge/client) groups, previously `num_cl`
     'cache_ttl': 99999,
     'base_server_alloc_frac': 1,
     'edge_server_alloc_frac': .4,
@@ -148,7 +149,7 @@ def override_daisy_config(daisy_config):
   # custom daiy config overrides embedded as dict
   daisy_config.update({
     "test_size": 0.0,
-    'epochs': 5,
+    'epochs': 1,
     # 'topk': int(len(item_df) * sim_conf['general']['recsys_model_topk_frac'])
   })
   
@@ -255,8 +256,8 @@ if __name__ == '__main__':
     server.setup()
     set_default_event(server.event_manager)
 
-    if server.name == 'base_server':
-      continue
+    # if server.name == 'base_server':
+    #   continue
 
     if sim_mode != SIM_MODE_ENUM.cache_aside:
       server.cfg.flag_suppress_cache_on_req = True
@@ -332,9 +333,13 @@ if __name__ == '__main__':
           to_be_cached_items = list()
           user_ids = fn_server_get_user_ids(server)
           for sel_user_id in user_ids:
-            ranks = list(base_server.model.full_rank(sel_user_id))
+            ranks = base_server.model.full_rank(sel_user_id)
+            if isinstance(ranks, np.ndarray):
+              ranks = ranks.flatten()
+            ranks = list(ranks)
             to_be_cached_items.extend(ranks)
-          to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count))
+          topk_n = int(server.cfg.cache_maxsize * sim_conf['general'].get('recsys_model_topk_frac', 1))
+          to_be_cached_items = Counter(to_be_cached_items).most_common(topk_n)
           to_be_cached_items = [i[0] for i in to_be_cached_items]
           to_be_cached_items_by_server[server.name].extend(to_be_cached_items)
       # esac cetralized learning
@@ -353,9 +358,13 @@ if __name__ == '__main__':
           to_be_cached_items = list()
           user_ids = fn_server_get_user_ids(server)
           for sel_user_id in user_ids:
-            ranks = list(server.model.full_rank(sel_user_id))
+            ranks = server.model.full_rank(sel_user_id)
+            if isinstance(ranks, np.ndarray):
+              ranks = ranks.flatten()
+            ranks = list(ranks)
             to_be_cached_items.extend(ranks)
-          to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count))
+          topk_n = int(server.cfg.cache_maxsize * sim_conf['general'].get('recsys_model_topk_frac', 1))
+          to_be_cached_items = Counter(to_be_cached_items).most_common(topk_n)
           to_be_cached_items = [i[0] for i in to_be_cached_items]
           to_be_cached_items_by_server[server.name].extend(to_be_cached_items)
       # esac localized learning
@@ -378,9 +387,13 @@ if __name__ == '__main__':
           to_be_cached_items = list()
           user_ids = fn_server_get_user_ids(server)
           for sel_user_id in user_ids:
-            ranks = list(server.model.full_rank(sel_user_id))
+            ranks = server.model.full_rank(sel_user_id)
+            if isinstance(ranks, np.ndarray):
+              ranks = ranks.flatten()
+            ranks = list(ranks)
             to_be_cached_items.extend(ranks)
-          to_be_cached_items = Counter(to_be_cached_items).most_common(int(item_total_count))
+          topk_n = int(server.cfg.cache_maxsize * sim_conf['general'].get('recsys_model_topk_frac', 1))
+          to_be_cached_items = Counter(to_be_cached_items).most_common(topk_n)
           to_be_cached_items = [i[0] for i in to_be_cached_items]
           to_be_cached_items_by_server[server.name].extend(to_be_cached_items)
       # esac federated learning
@@ -391,17 +404,18 @@ if __name__ == '__main__':
       # distribute to be cached items to servers
       for server in base_server.recurse_nodes():
         to_be_cached_items = to_be_cached_items_by_server.get(server.name)
+        print('caching item for', server.name, 'with', len(to_be_cached_items), 'items.')
         if to_be_cached_items is None or len(to_be_cached_items) == 0:
           continue
         for cache_item_id in to_be_cached_items:
           cache_param = EventParamContentRequest(
-              request_id=None,
-              client=server,
-              timestamp=timestamp,
-              user_id=user_id,
-              item_id=cache_item_id,
-              rating=None,
-              item_size=1,
+            request_id=None,
+            client=server,
+            timestamp=timestamp,
+            user_id=user_id,
+            item_id=cache_item_id,
+            rating=None,
+            item_size=1,
           )
           server.event_manager.trigger_event('SubCache', event_param=cache_param)
 

@@ -49,6 +49,17 @@ class RECSYS_MODEL_ENUM:
 
 # Misc helpers
 
+def agg_avg_torch_tensors(model, other_models, nn_attr_names):
+  n = len(other_models) + 1
+  for attr in nn_attr_names:
+    model_unloaded_state = getattr(model, attr).state_dict()
+    other_model_unloaded_states = map(lambda tt: getattr(tt, attr).state_dict(), other_models)
+    for layer in model_unloaded_state:
+      for other_state in other_model_unloaded_states:
+        model_unloaded_state[layer] += other_state[layer]
+    model_unloaded_state[layer] /= n
+    getattr(model, attr).load_state_dict(model_unloaded_state)
+
 def __mpd_assert_arg_type(fn):
   # asserts arg type decorator
   @wraps(fn)
@@ -64,16 +75,16 @@ def __mpd_assert_arg_type(fn):
 
 @__mpd_assert_arg_type
 def __mp_EASE_flAgg(self, other_models: t.Iterable):
-  print('__mp_EASE_flAgg')
-  print(self.reg_weight)
-  print(self.item_similarity)
-  print(self.interaction_matrix)
+  print('called __mp_EASE_flAgg')
+  print('reg_weight', self.reg_weight, type(self.reg_weight))
+  # print('item_similarity', self.item_similarity, type(self.item_similarity))
+  print('interaction_matrix', self.interaction_matrix, type(self.interaction_matrix))
   
 EASE.fl_agg = __mp_EASE_flAgg
 
 @__mpd_assert_arg_type
 def __mp_EASE_flDelegate(self, other_models: t.Iterable):
-  print('__mp_EASE_flDelegate')
+  print('called __mp_EASE_flDelegate')
 
 EASE.fl_delegate_to = __mp_EASE_flDelegate
 
@@ -83,18 +94,18 @@ EASE.fl_delegate_to = __mp_EASE_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_FM_flAgg(self, other_models: t.Iterable):
-  print('__mp_FM_flAgg')
-  print(self.embed_user)
-  print(self.embed_item)
-  print(self.u_bias)
-  print(self.i_bias)
-  print(self.bias_)
+  print('called __mp_FM_flAgg')
+  print('embed_user', self.embed_user, type(self.embed_user))
+  print('embed_item', self.embed_item, type(self.embed_item))
+  print('u_bias', self.u_bias, type(self.u_bias))
+  print('i_bias', self.i_bias, type(self.i_bias))
+  print('bias_', self.bias_, type(self.bias_))
 
 FM.fl_agg = __mp_FM_flAgg
 
 @__mpd_assert_arg_type
 def __mp_FM_flDelegate(self, other_models: t.Iterable):
-  print('__mp_FM_flDelegate')
+  print('called __mp_FM_flDelegate')
 
 FM.fl_delegate_to = __mp_FM_flDelegate
 
@@ -104,15 +115,15 @@ FM.fl_delegate_to = __mp_FM_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_Item2Vec_flAgg(self, other_models: t.Iterable):
-  print('__mp_Item2Vec_flAgg')
-  print(self.user_embedding)
-  print(self.shared_embedding)
+  print('called __mp_Item2Vec_flAgg')
+  print('user_embedding', self.user_embedding, type(self.user_embedding))
+  print('shared_embedding', self.shared_embedding, type(self.shared_embedding))
 
 Item2Vec.fl_agg = __mp_Item2Vec_flAgg
 
 @__mpd_assert_arg_type
 def __mp_Item2Vec_flDelegate(self, other_models: t.Iterable):
-  print('__mp_Item2Vec_flDelegate')
+  print('called __mp_Item2Vec_flDelegate')
 
 Item2Vec.fl_delegate_to = __mp_Item2Vec_flDelegate
 
@@ -122,14 +133,14 @@ Item2Vec.fl_delegate_to = __mp_Item2Vec_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_ItemKNNCF_flAgg(self, other_models: t.Iterable):
-  print('__mp_ItemKNNCF_flAgg')
-  print(self.pred_mat)
+  print('called __mp_ItemKNNCF_flAgg')
+  print('pred_mat', self.pred_mat, type(self.pred_mat))
 
 ItemKNNCF.fl_agg = __mp_ItemKNNCF_flAgg
 
 @__mpd_assert_arg_type
 def __mp_ItemKNNCF_flDelegate(self, other_models: t.Iterable):
-  print('__mp_ItemKNNCF_flDelegate')
+  print('called __mp_ItemKNNCF_flDelegate')
 
 ItemKNNCF.fl_delegate_to = __mp_ItemKNNCF_flDelegate
 
@@ -139,15 +150,15 @@ ItemKNNCF.fl_delegate_to = __mp_ItemKNNCF_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_LightGCN_flAgg(self, other_models: t.Iterable):
-  print('__mp_LightGCN_flAgg')
-  print(self.restore_user_e)
-  print(self.restore_item_e)
+  print('called __mp_LightGCN_flAgg')
+  print('restore_user_e', self.restore_user_e, type(self.restore_user_e))
+  print('restore_item_e', self.restore_item_e, type(self.restore_item_e))
 
 LightGCN.fl_agg = __mp_LightGCN_flAgg
 
 @__mpd_assert_arg_type
 def __mp_LightGCN_flDelegate(self, other_models: t.Iterable):
-  print('__mp_LightGCN_flDelegate')
+  print('called __mp_LightGCN_flDelegate')
 
 LightGCN.fl_delegate_to = __mp_LightGCN_flDelegate
 
@@ -157,15 +168,24 @@ LightGCN.fl_delegate_to = __mp_LightGCN_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_MF_flAgg(self, other_models: t.Iterable):
-  print('__mp_MF_flAgg')
-  print(self.embed_user)
-  print(self.embed_item)
+  print('called __mp_MF_flAgg')
+
+  attrs = ['embed_user', 'embed_item']
+  agg_avg_torch_tensors(self, other_models, attrs)
+
+  # print('embed_user', self.embed_user, type(self.embed_user))
+  # print('embed_item', self.embed_item, type(self.embed_item))
+
 
 MF.fl_agg = __mp_MF_flAgg
 
+
 @__mpd_assert_arg_type
 def __mp_MF_flDelegate(self, other_models: t.Iterable):
-  print('__mp_MF_flDelegate')
+  print('called __mp_MF_flDelegate')
+  for other_model in other_models:
+    other_model.embed_user.load_state_dict(self.embed_user.state_dict())
+    other_model.embed_item.load_state_dict(self.embed_item.state_dict())
 
 MF.fl_delegate_to = __mp_MF_flDelegate
 
@@ -175,19 +195,19 @@ MF.fl_delegate_to = __mp_MF_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_NeuMF_flAgg(self, other_models: t.Iterable):
-  print('__mp_NeuMF_flAgg')
-  print(self.embed_user_GMF) 
-  print(self.embed_user_MLP) 
-  print(self.embed_item_GMF)
-  print(self.embed_item_MLP)
-  print(self.predict_layer)
+  print('called __mp_NeuMF_flAgg')
+  print('embed_user_GMF', self.embed_user_GMF, type(self.embed_user_GMF)) 
+  print('embed_user_MLP', self.embed_user_MLP, type(self.embed_user_MLP)) 
+  print('embed_item_GMF', self.embed_item_GMF, type(self.embed_item_GMF))
+  print('embed_item_MLP', self.embed_item_MLP, type(self.embed_item_MLP))
+  print('predict_layer', self.predict_layer, type(self.predict_layer))
 
 
 NeuMF.fl_agg = __mp_NeuMF_flAgg
 
 @__mpd_assert_arg_type
 def __mp_NeuMF_flDelegate(self, other_models: t.Iterable):
-  print('__mp_NeuMF_flDelegate')
+  print('called __mp_NeuMF_flDelegate')
 
 NeuMF.fl_delegate_to = __mp_NeuMF_flDelegate
 
@@ -197,15 +217,15 @@ NeuMF.fl_delegate_to = __mp_NeuMF_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_NFM_flAgg(self, other_models: t.Iterable):
-  print('__mp_NFM_flAgg')
-  print(self.deep_layers)
-  print(self.prediction)
+  print('called __mp_NFM_flAgg')
+  print('deep_layers', self.deep_layers, type(self.deep_layers))
+  print('prediction', self.prediction, type(self.prediction))
 
 NFM.fl_agg = __mp_NFM_flAgg
 
 @__mpd_assert_arg_type
 def __mp_NFM_flDelegate(self, other_models: t.Iterable):
-  print('__mp_NFM_flDelegate')
+  print('called __mp_NFM_flDelegate')
 
 NFM.fl_delegate_to = __mp_NFM_flDelegate
 
@@ -215,16 +235,16 @@ NFM.fl_delegate_to = __mp_NFM_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_NGCF_flAgg(self, other_models: t.Iterable):
-  print('__mp_NGCF_flAgg')
-  print(self.embed_user)
-  print(self.embed_item)
-  print(self.gnn_layers)
+  print('called __mp_NGCF_flAgg')
+  print('embed_user', self.embed_user, type(self.embed_user))
+  print('embed_item', self.embed_item, type(self.embed_item))
+  print('gnn_layers', self.gnn_layers, type(self.gnn_layers))
 
 NGCF.fl_agg = __mp_NGCF_flAgg
 
 @__mpd_assert_arg_type
 def __mp_NGCF_flDelegate(self, other_models: t.Iterable):
-  print('__mp_NGCF_flDelegate')
+  print('called __mp_NGCF_flDelegate')
 
 NGCF.fl_delegate_to = __mp_NGCF_flDelegate
 
@@ -234,14 +254,14 @@ NGCF.fl_delegate_to = __mp_NGCF_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_MostPop_flAgg(self, other_models: t.Iterable):
-  print('__mp_MostPop_flAgg')
-  print(self.item_score)
+  print('called __mp_MostPop_flAgg')
+  print('item_score', self.item_score, type(self.item_score))
 
 MostPop.fl_agg = __mp_MostPop_flAgg
 
 @__mpd_assert_arg_type
 def __mp_MostPop_flDelegate(self, other_models: t.Iterable):
-  print('__mp_MostPop_flDelegate')
+  print('called __mp_MostPop_flDelegate')
 
 MostPop.fl_delegate_to = __mp_MostPop_flDelegate
 
@@ -251,15 +271,15 @@ MostPop.fl_delegate_to = __mp_MostPop_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_PureSVD_flAgg(self, other_models: t.Iterable):
-  print('__mp_PureSVD_flAgg')
-  print(self.user_vec)
-  print(self.item_vec)
+  print('called __mp_PureSVD_flAgg')
+  print('user_vec', self.user_vec, type(self.user_vec))
+  print('item_vec', self.item_vec, type(self.item_vec))
 
 PureSVD.fl_agg = __mp_PureSVD_flAgg
 
 @__mpd_assert_arg_type
 def __mp_PureSVD_flDelegate(self, other_models: t.Iterable):
-  print('__mp_PureSVD_flDelegate')
+  print('called __mp_PureSVD_flDelegate')
 
 PureSVD.fl_delegate_to = __mp_PureSVD_flDelegate
 
@@ -269,15 +289,15 @@ PureSVD.fl_delegate_to = __mp_PureSVD_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_SLiM_flAgg(self, other_models: t.Iterable):
-  print('__mp_SLiM_flAgg')
-  print(self.A_tilde)
-  print(self.w_sparse)
+  print('called __mp_SLiM_flAgg')
+  print('A_tilde', self.A_tilde, type(self.A_tilde))
+  print('w_sparse', self.w_sparse, type(self.w_sparse))
 
 SLiM.fl_agg = __mp_SLiM_flAgg
 
 @__mpd_assert_arg_type
 def __mp_SLiM_flDelegate(self, other_models: t.Iterable):
-  print('__mp_SLiM_flDelegate')
+  print('called __mp_SLiM_flDelegate')
 
 SLiM.fl_delegate_to = __mp_SLiM_flDelegate
 
@@ -287,17 +307,17 @@ SLiM.fl_delegate_to = __mp_SLiM_flDelegate
 
 @__mpd_assert_arg_type
 def __mp_VAECF_flAgg(self, other_models: t.Iterable):
-  print('__mp_VAECF_flAgg')
-  print(self.history_user_id)
-  print(self.history_item_id)
-  print(self.history_user_value)
-  print(self.history_item_value)
+  print('called __mp_VAECF_flAgg')
+  print('history_user_id', self.history_user_id, type(self.history_user_id))
+  print('history_item_id', self.history_item_id, type(self.history_item_id))
+  print('history_user_value', self.history_user_value, type(self.history_user_value))
+  print('history_item_value', self.history_item_value, type(self.history_item_value))
 
 VAECF.fl_agg = __mp_VAECF_flAgg
 
 @__mpd_assert_arg_type
 def __mp_VAECF_flDelegate(self, other_models: t.Iterable):
-  print('__mp_VAECF_flDelegate')
+  print('called __mp_VAECF_flDelegate')
 
 VAECF.fl_delegate_to = __mp_VAECF_flDelegate
 
@@ -378,8 +398,8 @@ class _ModelTrainRunner:
 
   def _train_preset2(self):
     def wrapper(model, config, train_set):
-      history_item_id, history_item_value, _  = get_history_matrix(train_set, config, row='user')
-      config['history_item_id'], config['history_item_value'] = history_item_id, history_item_value
+      history_item_id, history_item_value, _  = get_history_matrix(train_set, config, row='user_id')
+      model.config['history_item_id'], model.config['history_item_value'] = history_item_id, history_item_value
       train_dataset = AEDataset(train_set, yield_col=config['UID_NAME'])
       train_loader = get_dataloader(train_dataset, batch_size=config['batch_size'], shuffle=True, num_workers=4)
       model.fit(train_loader)
@@ -396,8 +416,12 @@ class _ModelTrainRunner:
 
   def _train_preset4(self):
     def wrapper(model, config, train_set):
-      config['inter_matrix'] = get_inter_matrix(train_set, config)
-      self._train_preset3(model, config)
+      model.config.update({'inter_matrix': get_inter_matrix(train_set, config)})
+      sampler = BasicNegtiveSampler(train_set, config)
+      train_samples = sampler.sampling()
+      train_dataset = BasicDataset(train_samples)
+      train_loader = get_dataloader(train_dataset, batch_size=config['batch_size'], shuffle=True, num_workers=4)
+      model.fit(train_loader)
     return wrapper
 
   def _train_preset5(self):
