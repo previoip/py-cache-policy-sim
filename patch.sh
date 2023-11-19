@@ -1,59 +1,19 @@
 # daisyRec patch
 
-echo "patching src/model/daisyRec"
-cd src/model/daisyRec
-
-echo "patching daisy"
-cd daisy
-
-echo "creating __init__.py file"
-touch "__init__.py"
-
-echo "patching model"
-cd model
-
-echo "creating __init__.py file"
-touch "__init__.py"
-
-echo "fixing rel imports"
-find . -type f -exec sed -i 's/daisy\.model/src\.model\.daisyRec\.daisy\.model/g' {} \;
-find . -type f -exec sed -i 's/daisy\.utils/src\.model\.daisyRec\.daisy\.utils/g' {} \;
-
-# hotfix on mostpop model -> torch compat
-echo "fixing torch compat"
-find . -type f -exec sed -i 's/item_score\[cands_ids\]/item_score\[cands_ids\.long\(\)\]/g' {} \;
-
-cd ../
-echo "patching utils"
-cd utils
-
-
-echo "fixing deprecated lib mthods"
-find . -type f -exec sed -i "s/\.iteritems/\.items/g" {} \;
-
-echo "fixing funtion literals"
-# hotfix utils functions var literals refers to default df column names
-find . -type f -exec sed -i "s/row\['user'\]/row\['user_id'\]/g" {} \;
-find . -type f -exec sed -i "s/row\['item'\]/row\['movie_id'\]/g" {} \;
-
-echo "fixing rel imports"
-find . -type f -exec sed -i 's/daisy\.utils/src\.model\.daisyRec\.daisy\.utils/g' {} \;
-
-
-cd ../../../../../
-
-echo "patching from patch files"
-
-tempfolder=./patchtemp
-if [ ! -d $tempfolder ]; then
-    mkdir $tempfolder
-fi
-
-filename=""
+# func recsed
 pathname=""
+p1=""
+p2=""
+recsed(){
+    echo "  >> sed $p1 --> $p2"
+    find $pathname -type f -exec sed -i "s/${p1}/${p2}/g" {} \;
+}
+
+# func recpath
+filename=""
 patchdir="patches"
 recpatch(){
-    echo "patching $filename.py"
+    echo "  >> $filename.py"
     if [ ! -f $tempfolder/$filename.py ]; then
         cp $pathname/$filename.py $tempfolder/$filename.py
     fi
@@ -61,11 +21,34 @@ recpatch(){
     echo    
 }
 
-pathname="src/model/daisyRec/daisy/model"
-echo "patching dir $pathname"
+tempfolder=./patchtemp
+if [ ! -d $tempfolder ]; then
+    mkdir $tempfolder
+fi
 
-filename="sampler"
-recpatch
+echo
+echo "! begin patching daisyRec !"
+
+touch "src/model/daisyRec/__init__.py"
+touch "src/model/daisyRec/daisy/__init__.py"
+
+pathname="src/model/daisyRec/daisy/model"
+echo "# target directory $pathname"
+
+echo "fixing rel imports"
+p1="daisy\.model"
+p2="src\.model\.daisyRec\.daisy\.model"
+recsed
+p1="daisy\.utils"
+p2="src\.model\.daisyRec\.daisy\.utils"
+recsed
+
+echo "fixing torch compat (mostpop)"
+p1="item_score\[cands_ids\]"
+p2="item_score\[cands_ids\.long\(\)\]"
+recsed
+
+echo "fixing from patch files"
 
 filename="EASERecommender"
 recpatch
@@ -91,10 +74,34 @@ recpatch
 filename="VAECFRecommender"
 recpatch
 
+
 pathname="src/model/daisyRec/daisy/utils"
-echo "patching dir $pathname"
+echo "# target directory $pathname"
+
+echo "fixing deprecated lib methods"
+p1="\.iteritems"
+p2="\.items"
+recsed
+
+echo "fixing invalid funtion literals"
+p1="row\['user'\]"
+p2="row\['user_id'\]"
+recsed
+p1="row\['item'\]"
+p2="row\['movie_id'\]"
+recsed
+
+echo "fixing rel imports"
+p1="daisy\.utils"
+p2="src\.model\.daisyRec\.daisy\.utils"
+recsed
+
+echo "fixing from patch files"
 
 filename="sampler"
 recpatch
 
 rm -rf $tempfolder
+
+echo
+echo "done"

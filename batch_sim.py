@@ -8,6 +8,7 @@ BASE_ARGS = ['python', 'main.py']
 PRUNE_PREVIOUS_RESULTS = True
 FRACS_RES = 5
 CUTOFF = 0
+TERMINATE_ON_ERR = False
 
 ARCHIVE_FNAME = 'archive.zip'
 HIST_FNAME = 'hist.json'
@@ -131,7 +132,7 @@ if __name__ == '__main__':
       args += ['--recsys_model_name', model]
 
     errno = subprocess.call(args)
-    if errno != 0:
+    if TERMINATE_ON_ERR and errno != 0:
       print()
       print('sim exited with non-zero err code', errno)
       print('config:', conf)
