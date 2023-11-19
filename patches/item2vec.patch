@@ -4,7 +4,7 @@
 <         self.ur = config['train_ur']
 ---
 > 
->         # patch defer config dict item retriefal
+>         # patch config dict item: defer train_ur retriefal 
 >         self._get_ur = partial(lambda: config['train_ur'])
 >         # self.ur = config['train_ur']
 >         self.ur = None
