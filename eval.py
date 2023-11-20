@@ -95,6 +95,19 @@ def parse_hitorical_json(fp, ensure_only_latests=True):
 
   return map(__unpack_hist_rec, hist_selects)
 
+def filter_historical_records(hist_records, parsed_args):
+  prfx = parsed_args.get('prfx')
+  if not prfx is None:
+    prfx = prfx.split(',')
+    hist_records = filter(lambda x: any(map(lambda y: x.hist_name.startswith(y), prfx)), hist_records)
+
+  sufx = parsed_args.get('sufx')
+  if not sufx is None:
+    sufx = sufx.split(',')
+    hist_records = filter(lambda x: any(map(lambda y: x.hist_name[:-3].endswith(y), sufx)), hist_records)
+
+  return hist_records
+
 
 def read_and_concat_dfs(hist_record):
   log_folder = hist_record.hist_info['log_folder']
@@ -139,18 +152,38 @@ def argparse_setup():
   subargp_filter.add_argument('--request-id')
   subargp_filter.add_argument('--server')
   subargp_filter.add_argument('--status')
+  subargp_filter = subargp.add_parser('frecords')
+  subargp_filter.add_argument('--prfx')
+  subargp_filter.add_argument('--sufx')
   return parser
 
 def plot_helper(plt, res_dict, res_ctx, plotter=plt.bar):
   data = dict()
   for config_name in res_dict.keys():
+    frac_label = config_name.split('_')[-1]
+    frac_label = float(frac_label) / 10
+    sim_label = ' '.join(config_name.split('_')[:-1])
+    if data.get(sim_label) is None:
+      data[sim_label] = dict()
+
     val = res_dict[config_name].get(res_ctx)
     if val is None:
       continue
-    label = config_name.split('_')[-1]
-    data[label] = val
+    data[sim_label][frac_label] = val
+
+  # for config_name in res_dict.keys():
+  #   val = res_dict[config_name].get(res_ctx)
+  #   if val is None:
+  #     continue
+  #   # label = config_name.split('_')[-1]
+  #   label = config_name
+  #   data[label] = val
+
   if data:
-    plotter(*zip(*data.items()))
+    # plotter(*zip(*data.items()))
+    for sim_label in data.keys():
+      plotter(*zip(*data[sim_label].items()), label=sim_label)
+
   return plt
 
 
@@ -165,6 +198,16 @@ if __name__ == '__main__':
     os.makedirs(FIG_EXPORT_PATH, exist_ok=True)
 
   config_hist_records = parse_hitorical_json(CONF_HIST_FILENAME)
+  config_hist_records = filter_historical_records(config_hist_records, parsed_args)  
+  config_hist_records = list(config_hist_records)
+
+  print('parsed history records:')
+  for record in config_hist_records:
+    print('\t -', record.hist_name)
+  print()
+
+  if input('proceed? [Y/n]') != 'Y':
+    exit()
 
   for config_hist_record in config_hist_records:
     print()
@@ -270,9 +313,12 @@ if __name__ == '__main__':
     eval_results[config_hist_record.hist_name]['avg_d_r'] = overall_server_metrics['d_r']
     eval_results[config_hist_record.hist_name]['V__xy'] = overall_server_metrics_exl_BS['V__xy']
 
+for i in eval_results.items():
+  print(i)
+# exit()
 # see aggregates in plt figures
 
-plt.rcParams["figure.figsize"] = (9, 3)
+plt.rcParams["figure.figsize"] = (8, 5)
 
 def show_and_close(plt, save_fpath):
   if do_save_figs:
@@ -281,16 +327,19 @@ def show_and_close(plt, save_fpath):
     plt.show()
   plt.close()
 
-plt = plot_helper(plt, eval_results, 'avg_d_r')
-plt.title('Average Request Delay')
-show_and_close(plt, 'delay_bar.png')
+# plt = plot_helper(plt, eval_results, 'avg_d_r')
+# plt.title('Average Request Delay')
+# plt.legend(loc="upper left")
+# show_and_close(plt, 'delay_bar.png')
 
 plt = plot_helper(plt, eval_results, 'avg_d_r', plotter=plt.plot)
 plt.title('Average Request Delay')
+plt.legend(loc="upper left")
 show_and_close(plt, 'delay.png')
 
 plt = plot_helper(plt, eval_results, 'V__xy', plotter=plt.plot)
 plt.title('Average Request Hit Rate')
+plt.legend(loc="upper left")
 show_and_close(plt, 'hit.png')
 
 
