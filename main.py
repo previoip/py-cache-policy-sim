@@ -150,6 +150,7 @@ def override_daisy_config(daisy_config):
   daisy_config.update({
     "test_size": 0.0,
     'epochs': 5,
+    'gpu': '', # or set to '0' if gpu is available
     # 'topk': int(len(item_df) * sim_conf['general']['recsys_model_topk_frac'])
   })
   
