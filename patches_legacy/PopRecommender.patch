@@ -1,0 +1,2 @@
+27a28
+>         self.item_score = np.zeros(self.item_num)

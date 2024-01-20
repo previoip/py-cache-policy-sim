@@ -1,31 +1,98 @@
-37,38c37,38
+30a31,35
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+37,38c42,47
 <     rows = list(df['user'])
 <     cols = list(df['item'])
 ---
->     rows = list(df['user_id'])
->     cols = list(df['movie_id'])
-437c437,438
-< 
+> 
+>     # ======= PATCH NOTE =======
+>     # fix: invalid col key value
+>     rows = list(df[self.df_uid])
+>     cols = list(df[self.df_iid])
+>     # ===== PATCH NOTE END =====
+403,404c412,413
+<         self.user_num = config['user_num']
+<         self.item_num = config['item_num']
 ---
+>         self.user_num = self.wref_config['user_num']
+>         self.item_num = self.wref_config['item_num']
+406,409c415,418
+<         self.k = config['maxk']
+<         self.shrink = config['shrink']
+<         self.normalize = config['normalize']
+<         self.similarity = config['similarity']
+---
+>         self.k = self.wref_config['maxk']
+>         self.shrink = self.wref_config['shrink']
+>         self.normalize = self.wref_config['normalize']
+>         self.similarity = self.wref_config['similarity']
+411c420
+<         self.topk = config['topk']
+---
+>         self.topk = self.wref_config['topk']
+437a447,452
+>         # ======= PATCH NOTE =======
+>         # early return if self.pred_mat is null
 >         if self.pred_mat is None:
->             return []
-440a442,444
->         if self.pred_mat is None:
->             return []
+>             return None
+>         # ===== PATCH NOTE END =====
 > 
-454a459,461
+442a458,463
+>         # ======= PATCH NOTE =======
+>         # early return if self.pred_mat is null
 >         if self.pred_mat is None:
 >             return []
+>         # ===== PATCH NOTE END =====
 > 
-512a520,522
->         if self.pred_mat is None:
->             return []
+454a476,482
 > 
-518a529,531
+>         # ======= PATCH NOTE =======
+>         # early return if self.pred_mat is null
 >         if self.pred_mat is None:
 >             return []
+>         # ===== PATCH NOTE END =====
 > 
-532a546,548
+482,483c510,511
+<         self.user_num = config['user_num']
+<         self.item_num = config['item_num']
+---
+>         self.user_num = self.wref_config['user_num']
+>         self.item_num = self.wref_config['item_num']
+485,489c513,517
+<         self.k = config['maxk']
+<         self.shrink = config['shrink']
+<         self.normalize = config['normalize']
+<         self.similarity = config['similarity']
+<         self.topk = config['topk']
+---
+>         self.k = self.wref_config['maxk']
+>         self.shrink = self.wref_config['shrink']
+>         self.normalize = self.wref_config['normalize']
+>         self.similarity = self.wref_config['similarity']
+>         self.topk = self.wref_config['topk']
+515a544,549
+>         # ======= PATCH NOTE =======
+>         # early return if self.pred_mat is null
+>         if self.pred_mat is None:
+>             return None
+>         # ===== PATCH NOTE END =====
+> 
+520a555,560
+>         # ======= PATCH NOTE =======
+>         # early return if self.pred_mat is null
 >         if self.pred_mat is None:
 >             return []
+>         # ===== PATCH NOTE END =====
+> 
+532a573,579
+> 
+>         # ======= PATCH NOTE =======
+>         # early return if self.pred_mat is null
+>         if self.pred_mat is None:
+>             return []
+>         # ===== PATCH NOTE END =====
 > 

@@ -1,5 +1,10 @@
-33,41c33,53
-<         super(VAECF, self).__init__(config)
+15a16,20
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+34,41c39,63
 <         self.epochs = config['epochs']
 <         self.lr = config['lr']
 <         self.dropout = config['dropout']
@@ -9,54 +14,84 @@
 <         self.anneal_cap = config['anneal_cap']
 <         self.total_anneal_steps = config["total_anneal_steps"]
 ---
->         self.config = config
->         super(VAECF, self).__init__(self.config)
->         self.epochs = self.config['epochs']
->         self.lr = self.config['lr']
->         self.dropout = self.config['dropout']
+>         self.epochs = self.wref_config['epochs']
+>         self.lr = self.wref_config['lr']
+>         self.dropout = self.wref_config['dropout']
 > 
->         self.layers = self.config["mlp_hidden_size"] if self.config['mlp_hidden_size'] is not None else [600]
->         self.lat_dim = self.config['latent_dim']
->         self.anneal_cap = self.config['anneal_cap']
->         self.total_anneal_steps = self.config["total_anneal_steps"]
+>         self.layers = self.wref_config["mlp_hidden_size"] if self.wref_config['mlp_hidden_size'] is not None else [600]
+>         self.lat_dim = self.wref_config['latent_dim']
+>         self.anneal_cap = self.wref_config['anneal_cap']
+>         self.total_anneal_steps = self.wref_config["total_anneal_steps"]
 > 
->         self.user_num = self.config['user_num']
->         self.item_num = self.config['item_num']
+>         self.user_num = self.wref_config['user_num']
+>         self.item_num = self.wref_config['item_num']
 > 
->         # defer stuffs
->         # self.history_item_id = self.config['history_item_id'].to(self.device)
->         self._get_history_item_id = lambda: self.config['history_item_id'].to(self.device)
+>         # ======= PATCH NOTE =======
+>         # defer self.history_item_id retrieval from self.wref_config
+>         # self.history_item_id = self.wref_config['history_item_id'].to(self.device)
+>         self._get_history_item_id = lambda: self.wref_config['history_item_id'].to(self.device)
 >         self.history_item_id = None
->         # self.history_item_value = self.config['history_item_value'].to(self.device)
->         self._get_history_item_value = lambda: self.config['history_item_value'].to(self.device)
+>         # ===== PATCH NOTE END =====
+> 
+>         # ======= PATCH NOTE =======
+>         # defer self.history_item_value retrieval from self.wref_config
+>         # self.history_item_value = self.wref_config['history_item_value'].to(self.device)
+>         self._get_history_item_value = lambda: self.wref_config['history_item_value'].to(self.device)
 >         self.history_item_value = None
-43,47d54
+>         # ===== PATCH NOTE END =====
+43,47d64
 <         self.user_num = config['user_num']
 <         self.item_num = config['item_num']
 < 
 <         self.history_item_id = config['history_item_id'].to(self.device)
 <         self.history_item_value = config['history_item_value'].to(self.device)
-56,58c63,65
+56,58c73,75
 <         self.optimizer = config['optimizer'] if config['optimizer'] != 'default' else 'adam'
 <         self.initializer = config['init_method'] if config['init_method'] != 'default' else 'xavier_normal'
 <         self.early_stop = config['early_stop']
 ---
->         self.optimizer = self.config['optimizer'] if self.config['optimizer'] != 'default' else 'adam'
->         self.initializer = self.config['init_method'] if self.config['init_method'] != 'default' else 'xavier_normal'
->         self.early_stop = self.config['early_stop']
-61c68
+>         self.optimizer = self.wref_config['optimizer'] if self.wref_config['optimizer'] != 'default' else 'adam'
+>         self.initializer = self.wref_config['init_method'] if self.wref_config['init_method'] != 'default' else 'xavier_normal'
+>         self.early_stop = self.wref_config['early_stop']
+61c78,88
 <         self.topk = config['topk']
 ---
->         self.topk = self.config['topk']
-92a100,104
->         if self.history_item_id is None:
->             self.history_item_id = self._get_history_item_id()
->         if self.history_item_value is None:
->             self.history_item_value = self._get_history_item_value()
+>         self.topk = self.wref_config['topk']
 > 
-140a153,157
+> 
+>     # ======= PATCH NOTE =======
+>     # wraps item retrieval as method
+>     def _retrieve_deferred(self):
 >         if self.history_item_id is None:
 >             self.history_item_id = self._get_history_item_id()
 >         if self.history_item_value is None:
 >             self.history_item_value = self._get_history_item_value()
+>     # ===== PATCH NOTE END =====
+92a120,125
+> 
+>         # ======= PATCH NOTE =======
+>         # try retrieve deferred item before method call self.get_user_rating_matrix
+>         self._retrieve_deferred()
+>         # ===== PATCH NOTE END =====
+> 
+112a146,151
+> 
+>         # ======= PATCH NOTE =======
+>         # try retrieve deferred item before method call self.get_user_rating_matrix
+>         self._retrieve_deferred()
+>         # ===== PATCH NOTE END =====
+> 
+121a161,166
+> 
+>         # ======= PATCH NOTE =======
+>         # try retrieve deferred item before method call self.get_user_rating_matrix
+>         self._retrieve_deferred()
+>         # ===== PATCH NOTE END =====
+> 
+140a186,191
+> 
+>         # ======= PATCH NOTE =======
+>         # try retrieve deferred item before method call self.get_user_rating_matrix
+>         self._retrieve_deferred()
+>         # ===== PATCH NOTE END =====
 > 

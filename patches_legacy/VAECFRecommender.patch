@@ -1,0 +1,62 @@
+33,41c33,53
+<         super(VAECF, self).__init__(config)
+<         self.epochs = config['epochs']
+<         self.lr = config['lr']
+<         self.dropout = config['dropout']
+< 
+<         self.layers = config["mlp_hidden_size"] if config['mlp_hidden_size'] is not None else [600]
+<         self.lat_dim = config['latent_dim']
+<         self.anneal_cap = config['anneal_cap']
+<         self.total_anneal_steps = config["total_anneal_steps"]
+---
+>         self.config = config
+>         super(VAECF, self).__init__(self.config)
+>         self.epochs = self.config['epochs']
+>         self.lr = self.config['lr']
+>         self.dropout = self.config['dropout']
+> 
+>         self.layers = self.config["mlp_hidden_size"] if self.config['mlp_hidden_size'] is not None else [600]
+>         self.lat_dim = self.config['latent_dim']
+>         self.anneal_cap = self.config['anneal_cap']
+>         self.total_anneal_steps = self.config["total_anneal_steps"]
+> 
+>         self.user_num = self.config['user_num']
+>         self.item_num = self.config['item_num']
+> 
+>         # defer stuffs
+>         # self.history_item_id = self.config['history_item_id'].to(self.device)
+>         self._get_history_item_id = lambda: self.config['history_item_id'].to(self.device)
+>         self.history_item_id = None
+>         # self.history_item_value = self.config['history_item_value'].to(self.device)
+>         self._get_history_item_value = lambda: self.config['history_item_value'].to(self.device)
+>         self.history_item_value = None
+43,47d54
+<         self.user_num = config['user_num']
+<         self.item_num = config['item_num']
+< 
+<         self.history_item_id = config['history_item_id'].to(self.device)
+<         self.history_item_value = config['history_item_value'].to(self.device)
+56,58c63,65
+<         self.optimizer = config['optimizer'] if config['optimizer'] != 'default' else 'adam'
+<         self.initializer = config['init_method'] if config['init_method'] != 'default' else 'xavier_normal'
+<         self.early_stop = config['early_stop']
+---
+>         self.optimizer = self.config['optimizer'] if self.config['optimizer'] != 'default' else 'adam'
+>         self.initializer = self.config['init_method'] if self.config['init_method'] != 'default' else 'xavier_normal'
+>         self.early_stop = self.config['early_stop']
+61c68
+<         self.topk = config['topk']
+---
+>         self.topk = self.config['topk']
+92a100,104
+>         if self.history_item_id is None:
+>             self.history_item_id = self._get_history_item_id()
+>         if self.history_item_value is None:
+>             self.history_item_value = self._get_history_item_value()
+> 
+140a153,157
+>         if self.history_item_id is None:
+>             self.history_item_id = self._get_history_item_id()
+>         if self.history_item_value is None:
+>             self.history_item_value = self._get_history_item_value()
+> 

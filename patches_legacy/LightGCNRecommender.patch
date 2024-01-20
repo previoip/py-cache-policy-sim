@@ -1,0 +1,58 @@
+40,45c40,45
+< 
+<         self.epochs = config['epochs']
+<         self.lr = config['lr']
+<         self.topk = config['topk']
+<         self.user_num = config['user_num']
+<         self.item_num = config['item_num']
+---
+>         self.config = config
+>         self.epochs = self.config['epochs']
+>         self.lr = self.config['lr']
+>         self.topk = self.config['topk']
+>         self.user_num = self.config['user_num']
+>         self.item_num = self.config['item_num']
+47,53c47,56
+<         # get this matrix from utils.get_inter_matrix and add it in config
+<         self.interaction_matrix = config['inter_matrix']
+< 
+<         self.factors = config['factors']
+<         self.num_layers = config['num_layers']
+<         self.reg_1 = config['reg_1']
+<         self.reg_2 = config['reg_2']
+---
+>         # defer item retrieval
+>         # get this matrix from utils.get_inter_matrix and add it in self.config
+>         # self.interaction_matrix = self.config['inter_matrix']
+>         self._get_inter_mat = lambda: self.config['inter_matrix']
+>         self.interaction_matrix = None
+> 
+>         self.factors = self.config['factors']
+>         self.num_layers = self.config['num_layers']
+>         self.reg_1 = self.config['reg_1']
+>         self.reg_2 = self.config['reg_2']
+58,61c61,64
+<         self.loss_type = config['loss_type']
+<         self.optimizer = config['optimizer'] if config['optimizer'] != 'default' else 'adam'
+<         self.initializer = config['init_method'] if config['init_method'] != 'default' else 'xavier_uniform'
+<         self.early_stop = config['early_stop']
+---
+>         self.loss_type = self.config['loss_type']
+>         self.optimizer = self.config['optimizer'] if self.config['optimizer'] != 'default' else 'adam'
+>         self.initializer = self.config['init_method'] if self.config['init_method'] != 'default' else 'xavier_uniform'
+>         self.early_stop = self.config['early_stop']
+69a73
+>         # defer adj_mat generation
+71c75,77
+<         self.norm_adj_matrix = self.get_norm_adj_mat().to(self.device)
+---
+>         # self.norm_adj_matrix = self.get_norm_adj_mat().to(self.device)
+>         self.norm_adj_matrix = None
+>         self._gen_norm_adj_matrix = lambda: self.get_norm_adj_mat().to(self.device)
+82a89,91
+>         if self.interaction_matrix is None:
+>             self.interaction_matrix = self._get_inter_mat()
+> 
+117a127,128
+>         if self.norm_adj_matrix is None:
+>             self.norm_adj_matrix = self._gen_norm_adj_matrix()

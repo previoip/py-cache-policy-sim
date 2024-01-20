@@ -18,7 +18,7 @@ recpatch(){
         cp $pathname/$filename.py $tempfolder/$filename.py
     fi
     patch $tempfolder/$filename.py $patchdir/$filename.patch -o $pathname/$filename.py
-    echo    
+    echo
 }
 
 tempfolder=./patchtemp
@@ -101,7 +101,7 @@ echo "fixing from patch files"
 filename="sampler"
 recpatch
 
-rm -rf $tempfolder
+# rm -rf $tempfolder
 
 echo
 echo "done"

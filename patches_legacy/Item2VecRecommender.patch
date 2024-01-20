@@ -1,0 +1,10 @@
+33c33,35
+<         self.ur = config['train_ur']
+---
+>         # self.ur = config['train_ur']
+>         self._get_ur = lambda: config['train_ur']
+>         self.ur = None
+54a57,59
+>         if self.ur is None:
+>             self.ur = self._get_ur()
+> 

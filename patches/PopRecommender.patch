@@ -1,2 +1,21 @@
-27a28
+14a15,19
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+24c29
+<         self.item_num = config['item_num']
+---
+>         self.item_num = self.wref_config['item_num']
+26,27c31,37
+<         self.topk = config['topk']
+<         self.cnt_col = config['IID_NAME']
+---
+>         self.topk = self.wref_config['topk']
+>         self.cnt_col = self.wref_config['IID_NAME']
+> 
+>         # ======= PATCH NOTE =======
+>         # declare undeclared attributes into class constructor
 >         self.item_score = np.zeros(self.item_num)
+>         # ===== PATCH NOTE END =====

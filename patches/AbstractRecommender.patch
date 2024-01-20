@@ -1,0 +1,14 @@
+102a103,115
+>         # ======= PATCH NOTE =======
+>         # save config object weakref into parent class
+>         self.wref_config = config
+>         # ===== PATCH NOTE END =====
+> 
+>         # ======= PATCH NOTE =======
+>         # declare df uid, iid, interid, and tsid as parent class attr
+>         self.df_uid = config['UID_NAME']
+>         self.df_iid = config['IID_NAME']
+>         self.df_interid = config['INTER_NAME']
+>         self.df_tsid = config['TID_NAME']
+>         # ===== PATCH NOTE END =====
+> 

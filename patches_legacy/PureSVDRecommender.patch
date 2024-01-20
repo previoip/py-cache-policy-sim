@@ -1,0 +1,17 @@
+54,55c54,55
+<         rows = list(df['user'])
+<         cols = list(df['item'])
+---
+>         rows = list(df['user_id'])
+>         cols = list(df['movie_id'])
+60a61,62
+>         if self.user_vec is None:
+>             return []
+63a66,68
+>         if self.user_vec is None:
+>             return []
+> 
+80a86,88
+>         if self.user_vec is None:
+>             return []
+> 

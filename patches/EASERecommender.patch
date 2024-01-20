@@ -1,8 +1,38 @@
-29a30,32
+14a15,19
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+19,21c24,26
+<         self.inter_name = config['INTER_NAME']
+<         self.iid_name = config['IID_NAME']
+<         self.uid_name = config['UID_NAME']
+---
+>         self.inter_name = self.wref_config['INTER_NAME']
+>         self.iid_name = self.wref_config['IID_NAME']
+>         self.uid_name = self.wref_config['UID_NAME']
+23,24c28,29
+<         self.user_num = config['user_num']
+<         self.item_num = config['item_num']
+---
+>         self.user_num = self.wref_config['user_num']
+>         self.item_num = self.wref_config['item_num']
+26c31
+<         self.reg_weight = config['reg']
+---
+>         self.reg_weight = self.wref_config['reg']
+29a35,40
+>         # ======= PATCH NOTE =======
+>         # declare undeclared attributes into class constructor
 >         self.item_similarity = np.zeros((self.item_num, self.user_num))
 >         self.interaction_matrix = np.zeros((self.user_num, self.item_num))
+>         # ===== PATCH NOTE END =====
 > 
-71c74
+71c82,85
 <         return np.argsort(-scores)[:, :self.topk]
 ---
+>         # ======= PATCH NOTE =======
+>         # bugfix: slicing an 1xn nparray
 >         return np.argsort(-scores)[:self.topk]
+>         # ===== PATCH NOTE END =====

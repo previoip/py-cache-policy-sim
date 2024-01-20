@@ -5,8 +5,7 @@ from functools import partial
 from enum import Enum
 from functools import wraps
 from src.logger_helper import spawn_logger, init_default_logger
-from src.data_examples.ml_data_loader import ExampleDataLoader
-from src.model.model_abc import ABCRecSysModel
+from src.data_loaders.ml_data_loader import ExampleDataLoader
 from src.model.daisyRec.daisy.model.AbstractRecommender import AbstractRecommender, GeneralRecommender
 from src.model.daisyRec.daisy.model.EASERecommender import EASE
 from src.model.daisyRec.daisy.model.FMRecommender import FM

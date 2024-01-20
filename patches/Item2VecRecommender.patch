@@ -1,10 +1,43 @@
-33c33,35
+15a16,21
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+> 
+32,33c38
+<         self.user_embedding = nn.Embedding(config['user_num'], config['factors'])
 <         self.ur = config['train_ur']
 ---
->         # self.ur = config['train_ur']
->         self._get_ur = lambda: config['train_ur']
->         self.ur = None
-54a57,59
+>         self.user_embedding = nn.Embedding(self.wref_config['user_num'], self.wref_config['factors'])
+35,37c40,49
+<         self.shared_embedding = nn.Embedding(config['item_num'], config['factors'])
+<         self.lr = config['lr']
+<         self.epochs = config['epochs']
+---
+>         # ======= PATCH NOTE =======
+>         # defer self.ur retrieval from self.wref_config
+>         # self.ur = self.wref_config['train_ur']
+>         self._get_ur = lambda: self.wref_config['train_ur']
+>         self.ur = None # self.wref_config.get('train_ur', None)
+>         # ===== PATCH NOTE END =====
+> 
+>         self.shared_embedding = nn.Embedding(self.wref_config['item_num'], self.wref_config['factors'])
+>         self.lr = self.wref_config['lr']
+>         self.epochs = self.wref_config['epochs']
+41,44c53,56
+<         self.optimizer = config['optimizer'] if config['optimizer'] != 'default' else 'adam'
+<         self.initializer = config['init_method'] if config['init_method'] != 'default' else 'normal'
+<         self.early_stop = config['early_stop']
+<         self.topk = config['topk']
+---
+>         self.optimizer = self.wref_config['optimizer'] if self.wref_config['optimizer'] != 'default' else 'adam'
+>         self.initializer = self.wref_config['init_method'] if self.wref_config['init_method'] != 'default' else 'normal'
+>         self.early_stop = self.wref_config['early_stop']
+>         self.topk = self.wref_config['topk']
+57a70,74
+>         # ======= PATCH NOTE =======
+>         # retrieve deferred self.ur
 >         if self.ur is None:
 >             self.ur = self._get_ur()
-> 
+>         # ===== PATCH NOTE END =====

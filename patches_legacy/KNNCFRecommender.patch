@@ -1,0 +1,31 @@
+37,38c37,38
+<     rows = list(df['user'])
+<     cols = list(df['item'])
+---
+>     rows = list(df['user_id'])
+>     cols = list(df['movie_id'])
+437c437,438
+< 
+---
+>         if self.pred_mat is None:
+>             return []
+440a442,444
+>         if self.pred_mat is None:
+>             return []
+> 
+454a459,461
+>         if self.pred_mat is None:
+>             return []
+> 
+512a520,522
+>         if self.pred_mat is None:
+>             return []
+> 
+518a529,531
+>         if self.pred_mat is None:
+>             return []
+> 
+532a546,548
+>         if self.pred_mat is None:
+>             return []
+> 

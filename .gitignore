@@ -160,3 +160,4 @@ difftemp
 patchtemp
 log
 hist.json
+data_loader_cache

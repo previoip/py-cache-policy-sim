@@ -1,17 +1,52 @@
-54,55c54,55
+16a17,21
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+29,31c34,36
+<         self.user_num = config['user_num']
+<         self.item_num = config['item_num']
+<         self.factors = config['factors']
+---
+>         self.user_num = self.wref_config['user_num']
+>         self.item_num = self.wref_config['item_num']
+>         self.factors = self.wref_config['factors']
+36c41
+<         self.topk = config['topk']
+---
+>         self.topk = self.wref_config['topk']
+54,55c59,65
 <         rows = list(df['user'])
 <         cols = list(df['item'])
 ---
->         rows = list(df['user_id'])
->         cols = list(df['movie_id'])
-60a61,62
->         if self.user_vec is None:
->             return []
-63a66,68
->         if self.user_vec is None:
->             return []
 > 
-80a86,88
+>         # ======= PATCH NOTE =======
+>         # fix: invalid col key value
+>         rows = list(df[self.df_uid])
+>         cols = list(df[self.df_iid])
+>         # ===== PATCH NOTE END =====
+> 
+60a71,77
+> 
+>         # ======= PATCH NOTE =======
+>         # early return if self.user_vec is null
+>         if self.user_vec is None:
+>             return None
+>         # ===== PATCH NOTE END =====
+> 
+65a83,88
+>         # ======= PATCH NOTE =======
+>         # early return if self.user_vec is null
 >         if self.user_vec is None:
 >             return []
+>         # ===== PATCH NOTE END =====
+> 
+80a104,110
+> 
+>         # ======= PATCH NOTE =======
+>         # early return if self.user_vec is null
+>         if self.user_vec is None:
+>             return []
+>         # ===== PATCH NOTE END =====
 > 
