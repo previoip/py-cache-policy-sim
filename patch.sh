@@ -12,16 +12,17 @@ recsed(){
 # func recpath
 filename=""
 patchdir="patches"
+tempfolder=./patchtemp
 recpatch(){
     echo "  >> $filename.py"
     if [ ! -f $tempfolder/$filename.py ]; then
         cp $pathname/$filename.py $tempfolder/$filename.py
     fi
+    dos2unix $tempfolder/$filename.py
     patch $tempfolder/$filename.py $patchdir/$filename.patch -o $pathname/$filename.py
     echo
 }
 
-tempfolder=./patchtemp
 if [ ! -d $tempfolder ]; then
     mkdir $tempfolder
 fi
@@ -34,19 +35,6 @@ touch "src/model/daisyRec/daisy/__init__.py"
 
 pathname="src/model/daisyRec/daisy/model"
 echo "# target directory $pathname"
-
-echo "fixing rel imports"
-p1="daisy\.model"
-p2="src\.model\.daisyRec\.daisy\.model"
-recsed
-p1="daisy\.utils"
-p2="src\.model\.daisyRec\.daisy\.utils"
-recsed
-
-echo "fixing torch compat (mostpop)"
-p1="item_score\[cands_ids\]"
-p2="item_score\[cands_ids\.long\(\)\]"
-recsed
 
 echo "fixing from patch files"
 
@@ -74,32 +62,42 @@ recpatch
 filename="VAECFRecommender"
 recpatch
 
+filename="AbstractRecommender"
+recpatch
+
+echo "fixing rel imports"
+p1="from\ daisy\.model"
+p2="from\ src\.model\.daisyRec\.daisy\.model"
+recsed
+p1="from\ daisy\.utils"
+p2="from\ src\.model\.daisyRec\.daisy\.utils"
+recsed
+
+echo "fixing torch compat (mostpop)"
+p1="item_score\[cands_ids\]"
+p2="item_score\[cands_ids\.long\(\)\]"
+recsed
+
 
 pathname="src/model/daisyRec/daisy/utils"
 echo "# target directory $pathname"
+
+echo "fixing from patch files"
+
+filename="sampler"
+recpatch
+
 
 echo "fixing deprecated lib methods"
 p1="\.iteritems"
 p2="\.items"
 recsed
 
-echo "fixing invalid funtion literals"
-p1="row\['user'\]"
-p2="row\['user_id'\]"
-recsed
-p1="row\['item'\]"
-p2="row\['movie_id'\]"
-recsed
 
 echo "fixing rel imports"
 p1="daisy\.utils"
 p2="src\.model\.daisyRec\.daisy\.utils"
 recsed
-
-echo "fixing from patch files"
-
-filename="sampler"
-recpatch
 
 # rm -rf $tempfolder
 
