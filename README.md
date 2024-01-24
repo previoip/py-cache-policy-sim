@@ -8,9 +8,17 @@ Args can be passed to configure evaluation behaviour. Here are few args/flags ex
 - To enable save figures, include `--save-fig` flag.
 - `--help` to see available commands/args/flags.
 
+
+### Todo
+
+  - EASE impl with DQL reinforcement learning
+  - Mathematic modelling for power distribution
+
+
 # External Resources
 
 Note: external resources needed to be downloaded using `retrieve_model.sh` before starting the simulator.
+
 
 ### [AmazingDD/daisyRec](https://github.com/AmazingDD/daisyRec/) 
 
