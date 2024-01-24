@@ -1,14 +1,15 @@
 set -b +e
 
+source ./dev/dev_patch_vars.sh
+
 src_path=./src/model/daisyRec/daisy
 dst_path='./difftemp'
 
 if [ -d $dst_path ]; then
   rm -rf $dst_path
-  mkdir $dst_path
-else
-  mkdir $dst_path
 fi
+
+mkdir $dst_path
 
 reccp(){
   echo "copying" $1

@@ -13,3 +13,4 @@ fp_PopRecommender=model/PopRecommender.py
 fp_PureSVDRecommender=model/PureSVDRecommender.py
 fp_VAECFRecommender=model/VAECFRecommender.py
 fp_sampler=utils/sampler.py
+fp_utils=utils/utils.py
