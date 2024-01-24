@@ -1,0 +1,23 @@
+19c19,21
+< def get_ur(df):
+---
+> # ======= PATCH NOTE =======
+> # fix: hardcoded key value into params
+> def get_ur(df, uid='user', iid='item'):
+32c34
+<         ur[int(row['user'])].add(int(row['item']))
+---
+>         ur[int(row[uid])].add(int(row[iid]))
+34a37
+> # ===== PATCH NOTE END =====
+36c39,40
+< def get_ir(df):
+---
+> # ======= PATCH NOTE =======
+> def get_ir(df, uid='user', iid='item'):
+49c53
+<         ir[int(row['item'])].add(int(row['user']))
+---
+>         ir[int(row[iid])].add(int(row[uid]))
+51a56
+> # ===== PATCH NOTE END =====
