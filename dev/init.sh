@@ -1,20 +1,17 @@
-set -b +e
+set -e
 
-source ./dev/dev_patch_vars.sh
+source ./dev/vars.sh
 
-src_path=./src/model/daisyRec/daisy
-dst_path='./patchtemp'
-
-if [ -d $dst_path ]; then
-  rm -rf $dst_path
+if [ -d $tmp_path ]; then
+  rm -rf $tmp_path
 fi
 
-mkdir $dst_path
+mkdir $tmp_path
 
 reccp(){
   echo "copying" $1
-  cp $1 $dst_path/$(basename "$1")
-  dos2unix $dst_path/$(basename "$1")
+  cp $1 $tmp_path/$(basename "$1")
+  dos2unix $tmp_path/$(basename "$1")
 }
 
 

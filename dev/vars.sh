@@ -1,5 +1,6 @@
 src_path=./src/model/daisyRec/daisy
-dst_path='./difftemp'
+dif_path='./difftemp'
+tmp_path='./patchtemp'
 patch_path='./patches'
 
 
