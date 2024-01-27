@@ -1,7 +1,7 @@
 import argparse
 import time
 from simutils import strvars
-from src.model.daisy_monkeypatch import RECSYS_MODEL_ENUM
+from src.model.mp_models import RECSYS_MODEL_ENUM
 
 
 class SIM_MODE_ENUM:
@@ -42,6 +42,8 @@ class config:
   def verify(cls):
     if cls.global_mode == SIM_MODE_ENUM.cache_aside:
       cls.recsys_name = None
+    if not cls.recsys_name is None and cls.global_mode != SIM_MODE_ENUM.cache_aside:
+      cls.global_mode = SIM_MODE_ENUM.centralized
 
 
 def build_parser(namespace: config):

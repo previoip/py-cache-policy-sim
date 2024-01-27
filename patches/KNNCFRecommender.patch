@@ -4,6 +4,10 @@
 > # override class config ref into
 > # weakref form from parent class
 > # ===== PATCH NOTE END =====
+32c37
+< def convert_df(user_num, item_num, df):
+---
+> def convert_df(self, user_num, item_num, df):
 37,38c42,47
 <     rows = list(df['user'])
 <     cols = list(df['item'])
@@ -34,6 +38,10 @@
 <         self.topk = config['topk']
 ---
 >         self.topk = self.wref_config['topk']
+416c425
+<         train = convert_df(self.user_num, self.item_num, train_set)
+---
+>         train = convert_df(self, self.user_num, self.item_num, train_set)
 437a447,452
 >         # ======= PATCH NOTE =======
 >         # early return if self.pred_mat is null
@@ -74,6 +82,10 @@
 >         self.normalize = self.wref_config['normalize']
 >         self.similarity = self.wref_config['similarity']
 >         self.topk = self.wref_config['topk']
+494c522
+<         train = convert_df(self.user_num, self.item_num, train_set)
+---
+>         train = convert_df(self, self.user_num, self.item_num, train_set)
 515a544,549
 >         # ======= PATCH NOTE =======
 >         # early return if self.pred_mat is null

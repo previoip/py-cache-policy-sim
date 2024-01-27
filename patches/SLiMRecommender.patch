@@ -1,0 +1,32 @@
+25a26,30
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+41,42c46,47
+<         self.md = ElasticNet(alpha=config['alpha'], 
+<                              l1_ratio=config['elastic'], 
+---
+>         self.md = ElasticNet(alpha=self.wref_config['alpha'], 
+>                              l1_ratio=self.wref_config['elastic'], 
+50,52c55,57
+<         self.item_num = config['item_num']
+<         self.user_num = config['user_num']
+<         self.topk = config['topk']
+---
+>         self.item_num = self.wref_config['item_num']
+>         self.user_num = self.wref_config['user_num']
+>         self.topk = self.wref_config['topk']
+152,154c157,163
+<         ratings = list(df['rating'])
+<         rows = list(df['user'])
+<         cols = list(df['item'])
+---
+>         # ======= PATCH NOTE =======
+>         # fix: hardcoded key
+>         ratings = list(df[self.df_interid])
+>         rows = list(df[self.df_uid])
+>         cols = list(df[self.df_iid])
+>         # ===== PATCH NOTE END =====
+> 

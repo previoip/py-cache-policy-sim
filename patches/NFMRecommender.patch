@@ -1,0 +1,65 @@
+14a15,20
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+> 
+39,54c45,60
+<         self.factors = config['factors']
+<         self.act_function = config['act_function']
+<         self.num_layers = config['num_layers']
+<         self.batch_norm = config['batch_norm']
+<         self.dropout = config['dropout']
+< 
+<         self.lr = config['lr']
+<         self.reg_1 = config['reg_1']
+<         self.reg_2 = config['reg_2']
+<         self.epochs = config['epochs']
+< 
+<         self.loss_type = config['loss_type']
+<         self.initializer = config['init_method'] if config['init_method'] != 'default' else 'xavier_normal'
+<         self.optimizer = config['optimizer'] if config['optimizer'] != 'default' else 'sgd'
+<         self.early_stop = config['early_stop']
+<         self.topk = config['topk']
+---
+>         self.factors = self.wref_config['factors']
+>         self.act_function = self.wref_config['act_function']
+>         self.num_layers = self.wref_config['num_layers']
+>         self.batch_norm = self.wref_config['batch_norm']
+>         self.dropout = self.wref_config['dropout']
+> 
+>         self.lr = self.wref_config['lr']
+>         self.reg_1 = self.wref_config['reg_1']
+>         self.reg_2 = self.wref_config['reg_2']
+>         self.epochs = self.wref_config['epochs']
+> 
+>         self.loss_type = self.wref_config['loss_type']
+>         self.initializer = self.wref_config['init_method'] if self.wref_config['init_method'] != 'default' else 'xavier_normal'
+>         self.optimizer = self.wref_config['optimizer'] if self.wref_config['optimizer'] != 'default' else 'sgd'
+>         self.early_stop = self.wref_config['early_stop']
+>         self.topk = self.wref_config['topk']
+56,57c62,63
+<         self.embed_user = nn.Embedding(config['user_num'], config['factors'])
+<         self.embed_item = nn.Embedding(config['item_num'], config['factors'])
+---
+>         self.embed_user = nn.Embedding(self.wref_config['user_num'], self.wref_config['factors'])
+>         self.embed_item = nn.Embedding(self.wref_config['item_num'], self.wref_config['factors'])
+59,60c65,66
+<         self.u_bias = nn.Embedding(config['user_num'], 1)
+<         self.i_bias = nn.Embedding(config['item_num'], 1)
+---
+>         self.u_bias = nn.Embedding(self.wref_config['user_num'], 1)
+>         self.i_bias = nn.Embedding(self.wref_config['item_num'], 1)
+66c72
+<             FM_modules.append(nn.BatchNorm1d(config['factors']))
+---
+>             FM_modules.append(nn.BatchNorm1d(self.wref_config['factors']))
+71c77
+<         in_dim = config['factors']
+---
+>         in_dim = self.wref_config['factors']
+89c95
+<         predict_size = config['factors']  # layers[-1] if layers else factors
+---
+>         predict_size = self.wref_config['factors']  # layers[-1] if layers else factors

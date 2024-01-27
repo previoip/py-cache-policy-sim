@@ -1,3 +1,5 @@
+set -e
+
 # daisyRec recsys model
 
 rm -rf src/model/daisyRec
@@ -15,7 +17,7 @@ cp requirements.txt ./../../../requirements.txt
 
 cd ../../..
 
-# source patch.sh
+source patch.sh
 
 printf "\n" >> requirements.txt
 printf "requests>=2.30.0\n" >> requirements.txt

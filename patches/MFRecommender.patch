@@ -1,0 +1,36 @@
+23a24,28
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+46,49c51,54
+<         self.lr = config['lr']
+<         self.reg_1 = config['reg_1']
+<         self.reg_2 = config['reg_2']
+<         self.epochs = config['epochs']
+---
+>         self.lr = self.wref_config['lr']
+>         self.reg_1 = self.wref_config['reg_1']
+>         self.reg_2 = self.wref_config['reg_2']
+>         self.epochs = self.wref_config['epochs']
+51c56
+<         self.topk = config['topk']
+---
+>         self.topk = self.wref_config['topk']
+53,54c58,59
+<         self.embed_user = nn.Embedding(config['user_num'], config['factors'])
+<         self.embed_item = nn.Embedding(config['item_num'], config['factors'])
+---
+>         self.embed_user = nn.Embedding(self.wref_config['user_num'], self.wref_config['factors'])
+>         self.embed_item = nn.Embedding(self.wref_config['item_num'], self.wref_config['factors'])
+56,59c61,64
+<         self.loss_type = config['loss_type']
+<         self.optimizer = config['optimizer'] if config['optimizer'] != 'default' else 'sgd'
+<         self.initializer = config['init_method'] if config['init_method'] != 'default' else 'normal'
+<         self.early_stop = config['early_stop']
+---
+>         self.loss_type = self.wref_config['loss_type']
+>         self.optimizer = self.wref_config['optimizer'] if self.wref_config['optimizer'] != 'default' else 'sgd'
+>         self.initializer = self.wref_config['init_method'] if self.wref_config['init_method'] != 'default' else 'normal'
+>         self.early_stop = self.wref_config['early_stop']

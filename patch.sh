@@ -41,6 +41,9 @@ echo "fixing from patch files"
 filename="EASERecommender"
 recpatch
 
+filename="FMRecommender"
+recpatch
+
 filename="Item2VecRecommender"
 recpatch
 
@@ -50,7 +53,16 @@ recpatch
 filename="LightGCNRecommender"
 recpatch
 
+filename="MFRecommender"
+recpatch
+
 filename="NGCFRecommender"
+recpatch
+
+filename="NFMRecommender"
+recpatch
+
+filename="NeuMFRecommender"
 recpatch
 
 filename="PopRecommender"
@@ -60,6 +72,9 @@ filename="PureSVDRecommender"
 recpatch
 
 filename="VAECFRecommender"
+recpatch
+
+filename="SLiMRecommender"
 recpatch
 
 filename="AbstractRecommender"
@@ -87,6 +102,8 @@ echo "fixing from patch files"
 filename="sampler"
 recpatch
 
+filename="utils"
+recpatch
 
 echo "fixing deprecated lib methods"
 p1="\.iteritems"
@@ -103,3 +120,5 @@ recsed
 
 echo
 echo "done"
+
+$SHELL
