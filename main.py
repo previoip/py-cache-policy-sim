@@ -3,6 +3,8 @@ from config import config, build_parser, SIM_MODE_ENUM
 import numpy as np
 import pandas as pd
 import tqdm
+import random
+import torch
 from collections import Counter, namedtuple
 from tqdm.contrib.logging import logging_redirect_tqdm
 from simutils import prepare_item_df, prepare_request_df, prepare_user_partition, iter_requests, group_partition
@@ -37,10 +39,19 @@ if __name__ == '__main__':
 
   config.verify()
 
-  print('{:-^36}'.format(' sim benchmark '))
+  print('{:-^48}'.format(' cache strategy sim '))
   print('  mode\t: {0.global_mode}'.format(config))
   print('  model\t: {0.recsys_name}'.format(config))
-  print('{:-^36}'.format(''))
+  print('{:-^48}'.format(''))
+
+  # rand seed setup => follows reproducible init seed 
+  random.seed(config.global_rand_seed)
+  np.random.seed(config.global_rand_seed)
+  torch.manual_seed(config.global_rand_seed)
+  torch.cuda.manual_seed(config.global_rand_seed)
+  torch.cuda.manual_seed_all(config.global_rand_seed)
+  torch.backends.cudnn.benchmark = False
+  torch.backends.cudnn.deterministic = True
 
   # process data loader
   data_loader = ExampleDataLoader()
@@ -51,7 +62,23 @@ if __name__ == '__main__':
   daisy_config['seed'] = config.global_rand_seed
   daisy_config['epochs'] = config.recsys_epochs
 
-  print(daisy_config)
+  print('{:-^47}'.format(' recsys config '))
+  print('{:<16}|{:<16}|{:<16}'.format(
+    f' seed:{daisy_config.get("seed")}',
+    f' optim:{daisy_config.get("optimization_metric")}',
+    f' val_met:{daisy_config.get("val_method")}',
+  ))
+  print('{:<16}|{:<16}|{:<16}'.format(
+    f' val_s:{daisy_config.get("val_size")}',
+    f' test_s:{daisy_config.get("test_size")}',
+    f' topk:{daisy_config.get("topk")}',
+  ))
+  print('{:<16}|{:<16}|{:<16}'.format(
+    f' epoch:{daisy_config.get("epochs")}',
+    f' user_num:{daisy_config.get("user_num")}',
+    f' item_num:{daisy_config.get("item_num")}',
+  ))
+  print('{:-^48}'.format(''))
 
   # setup request iterator
   num_request = config.global_cutoff if config.global_cutoff > -1 else data_loader.nrow
@@ -60,7 +87,7 @@ if __name__ == '__main__':
   request_df = prepare_request_df(data_loader)
   request_it = iter_requests(request_df, num_request)
   request_tqdm = tqdm.tqdm(request_it, total=num_request, ascii=True)
-  round_mod = (num_request // config.recsys_round) - 1
+  round_mod = (num_request // (config.recsys_round + 1)) + 1
 
   # ================================================================
   # 1. prep pseudo-server nodes
@@ -110,7 +137,7 @@ if __name__ == '__main__':
       if isinstance(items, np.ndarray):
         items = items.flatten()
       items = list(items)
-      cls.cache_item_pool[server_name].extend(item)
+      cls.cache_item_pool[server_name].extend(items)
 
     @classmethod
     def get_most_common_items(cls, server_name, topn):
@@ -138,7 +165,9 @@ if __name__ == '__main__':
         return None
       return pd.concat(dfs)
 
-
+    @staticmethod
+    def fetch_users_from_log_request_db(db):
+      return list(set([int(getattr(i, data_loader.uid, None)) for i in db.get_container()]))
 
   # import event worker constructor
   from src.event import new_event_thread_worker
@@ -205,17 +234,22 @@ if __name__ == '__main__':
       # some additional time
       job_queue.join()
 
-      # 2.1 cache logic flow
+      # 2.1 training logic flow
       # training rounds
       if config.global_mode == SIM_MODE_ENUM.cache_aside:
+        # does nothing
         pass
       
       elif round_mod != 0 and req.row > 0 and req.row % round_mod == 0:
         if config.global_mode == SIM_MODE_ENUM.centralized:
+          # only train on base_server instance
           df = CacheStrategies.fetch_request_logs_df(base_server, lambda x: x.name == 'base_server')
+          if df is None:
+            continue
           base_server.recsys_runner.train(df)
 
         elif config.global_mode == SIM_MODE_ENUM.localized:
+          # train on each server instance (predicate returns all server)
           for server in CacheStrategies.fetch_servers(base_server, lambda x: True):
             df = CacheStrategies.fetch_request_logs_df(base_server, lambda x: x.name == server.name)
             if df is None:
@@ -223,14 +257,52 @@ if __name__ == '__main__':
             server.recsys_runner.train(df)
 
         elif config.global_mode == SIM_MODE_ENUM.federated:
-          for server in CacheStrategies.fetch_servers(base_server, lambda x: x.name != 'base_server'):
+          # train only on edge_server/leaf nodes
+          federated_servers = CacheStrategies.fetch_servers(base_server, lambda x: x.name != 'base_server' and x.is_leaf())
+          all_other_servers = CacheStrategies.fetch_servers(base_server, lambda x: x.name != 'base_server')
+          for server in federated_servers:
             df = CacheStrategies.fetch_request_logs_df(base_server, lambda x: x.name == server.name)
             if df is None:
               continue
             server.recsys_runner.train(df)
+          # compile model into base server and delegate model to other instance
+          base_server.recsys_runner.model.fl_agg(list(map(lambda s: s.recsys_runner.model, federated_servers)))
+          base_server.recsys_runner.model.fl_delegate_to(list(map(lambda s: s.recsys_runner.model, all_other_servers)))
+
+      # 2.2 caching candidate logic flow
+      if config.global_mode == SIM_MODE_ENUM.cache_aside:
+        # does nothing, cache aside handled cache on every request
+        pass
+      elif round_mod != 0 and req.row > 0 and req.row % round_mod == 0:
+        # prepare all server users
+        all_servers = CacheStrategies.fetch_servers(base_server, lambda x: True)
+        for server in all_servers:
+          CacheItemPool.clear_cache_pool(server.name)
+          server_users = CacheStrategies.fetch_users_from_log_request_db(server.request_log_database)
+          print(server, server_users)
+  
+          for user in server_users:
+            if config.global_mode == SIM_MODE_ENUM.centralized:
+              # infer from base_server model
+              ranks = base_server.recsys_runner.model.full_rank(user)
+            elif config.global_mode == SIM_MODE_ENUM.localized or \
+              config.global_mode == SIM_MODE_ENUM.federated:
+              # infer from indiv server model
+              ranks = server.recsys_runner.model.full_rank(user)
+            CacheItemPool.extend_item(server.name, ranks)
+
+      # 2.3 caching begin 
+      all_servers = CacheStrategies.fetch_servers(base_server, lambda x: True)
+      for server in all_servers:
+        cache_cands = CacheItemPool.get_most_common_items(server.name, round_mod)
+        for item in cache_cands:
+          server.cache.add(item, 1)
+        CacheItemPool.clear_cache_pool(server.name)
 
   # wait until queue is exhausted
   job_queue.join()
 
+  print()
+  print()
   for server in base_server.recurse_nodes():
     print(server, server.states)

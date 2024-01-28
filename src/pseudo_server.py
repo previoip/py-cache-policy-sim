@@ -8,6 +8,7 @@ from src.cache import Cache, T_TTL, T_SIZE
 from src.pseudo_database import ABCPseudoDatabase, TabularPDB
 from src.event import EventManager, new_event_thread_worker
 from src.model.daisyRec.daisy.model.AbstractRecommender import AbstractRecommender
+from src.model.mp_runner import RecsysFL
 
 @dataclass
 class ServerConfig:
@@ -61,7 +62,7 @@ class Server(Node):
     self._request_log_database = None
     self._request_status_log_database = None
     self._cache: Cache = None
-    self._recsys_runner = None
+    self._recsys_runner: RecsysFL.ModelRunner = None
 
   @property
   def states(self):
@@ -101,7 +102,7 @@ class Server(Node):
     return self._timer
 
   @property
-  def recsys_runner(self):
+  def recsys_runner(self) -> RecsysFL.ModelRunner:
     return self._recsys_runner
 
   def has_database(self):
