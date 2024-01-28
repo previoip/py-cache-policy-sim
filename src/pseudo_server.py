@@ -63,6 +63,7 @@ class Server(Node):
     self._request_status_log_database = None
     self._cache: Cache = None
     self._recsys_runner: RecsysFL.ModelRunner = None
+    self.cache_policy = None
 
   @property
   def states(self):
@@ -116,6 +117,9 @@ class Server(Node):
 
   def set_recsys_runner(self, model: AbstractRecommender):
     self._recsys_runner = model
+
+  def set_cache_policy(self, policy_net):
+    self.set_cache_policy = policy_net
 
   def setup(self, queue):
     self._buffers = ServerBuffers()

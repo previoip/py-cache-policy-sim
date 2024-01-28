@@ -25,6 +25,8 @@ class config:
   recsys_round          = 10
   recsys_epochs         = 10
 
+  cache_use_drl         = False
+
   path_log_dir          = './log'
   path_fmt_log_req      = 'logreq_{}.csv'
   path_fmt_log_req_stat = 'logreq_stat_{}.csv'
@@ -43,8 +45,8 @@ class config:
   def verify(cls):
     if cls.global_mode == SIM_MODE_ENUM.cache_aside:
       cls.recsys_name = None
-    if not cls.recsys_name is None and cls.global_mode != SIM_MODE_ENUM.cache_aside:
-      cls.global_mode = SIM_MODE_ENUM.centralized
+    # if not cls.recsys_name is None and cls.global_mode != SIM_MODE_ENUM.cache_aside:
+    #   cls.global_mode = SIM_MODE_ENUM.centralized
 
 
 def build_parser(namespace: config):
@@ -56,6 +58,7 @@ def build_parser(namespace: config):
   parser.add_argument('--model', type=str, dest='recsys_name', default=namespace.recsys_name, choices=strvars(RECSYS_MODEL_ENUM).values())
   parser.add_argument('--rounds', type=int, dest='recsys_round', default=namespace.recsys_round)
   parser.add_argument('--epochs', type=int, dest='recsys_epochs', default=namespace.recsys_epochs)
+  parser.add_argument('--use-drl', dest='cache_use_drl', default=namespace.cache_use_drl, action='store_true')
   parser.add_argument('--fl-edges-count', type=int, dest='netw_num_edge', default=namespace.netw_num_edge)
   parser.add_argument('--fl-edges-alloc', type=float, dest='netw_es_alloc', default=namespace.netw_es_alloc)
   parser.add_argument('--fl-base-alloc', type=float, dest='netw_bs_alloc', default=namespace.netw_bs_alloc)

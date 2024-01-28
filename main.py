@@ -13,6 +13,7 @@ from src.model.mp_runner import RecsysFL
 from src.pseudo_database import PandasDataFramePDB
 from src.pseudo_server import Server
 from src.logger_helper import init_default_logger
+from src.model.caching_policy_env import CachingRLEnv
 from threading import Thread
 
 # ================================================================
@@ -62,24 +63,6 @@ if __name__ == '__main__':
   daisy_config['seed'] = config.global_rand_seed
   daisy_config['epochs'] = config.recsys_epochs
 
-  print('{:-^47}'.format(' recsys config '))
-  print('{:<16}|{:<16}|{:<16}'.format(
-    f' seed:{daisy_config.get("seed")}',
-    f' optim:{daisy_config.get("optimization_metric")}',
-    f' val_met:{daisy_config.get("val_method")}',
-  ))
-  print('{:<16}|{:<16}|{:<16}'.format(
-    f' val_s:{daisy_config.get("val_size")}',
-    f' test_s:{daisy_config.get("test_size")}',
-    f' topk:{daisy_config.get("topk")}',
-  ))
-  print('{:<16}|{:<16}|{:<16}'.format(
-    f' epoch:{daisy_config.get("epochs")}',
-    f' user_num:{daisy_config.get("user_num")}',
-    f' item_num:{daisy_config.get("item_num")}',
-  ))
-  print('{:-^48}'.format(''))
-
   # setup request iterator
   num_request = config.global_cutoff if config.global_cutoff > -1 else data_loader.nrow
   item_df = prepare_item_df(data_loader)
@@ -88,7 +71,22 @@ if __name__ == '__main__':
   request_it = iter_requests(request_df, num_request)
   request_tqdm = tqdm.tqdm(request_it, total=num_request, ascii=True)
   round_mod = (num_request // (config.recsys_round + 1)) + 1
+  daisy_config['topk'] = round_mod
 
+  if config.global_mode != SIM_MODE_ENUM.cache_aside:
+    print('{:-^48}'.format(' recsys config '))
+    print('{:<16}|{:<16}|{:<16}'.format(
+      f' seed:{daisy_config.get("seed")}',
+      f' optim:{daisy_config.get("optimization_metric")}',
+      f' use_drl:{config.cache_use_drl}',
+    ))
+    print('{:<16}|{:<16}|{:<16}'.format(
+      f' epoch:{daisy_config.get("epochs")}',
+      f' user_num:{daisy_config.get("user_num")}',
+      f' item_num:{daisy_config.get("item_num")}',
+    ))
+    print('{:-^48}'.format(''))
+  
   # ================================================================
   # 1. prep pseudo-server nodes
   # ================================================================
@@ -145,8 +143,10 @@ if __name__ == '__main__':
       if items is None:
         return []
       items = Counter(items).most_common(topn)
+      max_score = max([i[1] for i in items])
+      item_popularity_score = [(i[0], i[1] / max_score) for i in items]
       items = [i[0] for i in items]
-      return items
+      return items, item_popularity_score
 
   class CacheStrategies:
     """ namespace for caching strategies methods """
@@ -186,6 +186,7 @@ if __name__ == '__main__':
   base_server.cfg.cache_maxsize = int(config.netw_bs_alloc * item_len)
   base_server.cfg.db_req_log_fieldnames = db_req_log_fieldnames
   base_server.cfg.db_req_stat_log_fieldnames = db_req_stat_log_fieldnames
+  base_server.set_cache_policy(CachingRLEnv(base_server))
 
   base_server_runner = RecsysFL.new_recsys_runner(daisy_config)
   base_server.set_recsys_runner(base_server_runner)
@@ -204,6 +205,7 @@ if __name__ == '__main__':
     edge_server.cfg.cache_maxage = 999
     edge_server.cfg.db_req_log_fieldnames = db_req_log_fieldnames
     edge_server.cfg.db_req_stat_log_fieldnames = db_req_stat_log_fieldnames
+    edge_server.set_cache_policy(CachingRLEnv(edge_server))
 
   # setup server defaults
   for server in base_server.recurse_nodes():
@@ -279,8 +281,7 @@ if __name__ == '__main__':
         for server in all_servers:
           CacheItemPool.clear_cache_pool(server.name)
           server_users = CacheStrategies.fetch_users_from_log_request_db(server.request_log_database)
-          print(server, server_users)
-  
+
           for user in server_users:
             if config.global_mode == SIM_MODE_ENUM.centralized:
               # infer from base_server model
@@ -294,7 +295,15 @@ if __name__ == '__main__':
       # 2.3 caching begin 
       all_servers = CacheStrategies.fetch_servers(base_server, lambda x: True)
       for server in all_servers:
-        cache_cands = CacheItemPool.get_most_common_items(server.name, round_mod)
+        cache_cands, cache_cands_pop_score = CacheItemPool.get_most_common_items(server.name, server.cfg.cache_maxsize)
+
+        # todo: caching policy procedure
+
+        # replay_mem = server.cache_policy.retrieve_replay_memory()
+        server.cache_policy.train(cache_cands_pop_score)
+        cache_cands = server.cache_policy.infer(cache_cands)
+        
+        # todo end
         for item in cache_cands:
           server.cache.add(item, 1)
         CacheItemPool.clear_cache_pool(server.name)
