@@ -7,13 +7,12 @@ from src.node import Node
 from src.cache import Cache, T_TTL, T_SIZE
 from src.pseudo_database import ABCPseudoDatabase, TabularPDB
 from src.event import EventManager, new_event_thread_worker
-from src.model.model_abc import ABCRecSysModel
+from src.model.daisyRec.daisy.model.AbstractRecommender import AbstractRecommender
 
 @dataclass
 class ServerConfig:
   cache_maxsize: T_SIZE             = 1024
   cache_maxage: T_TTL               = 0
-  job_queue_maxsize: int            = 0
   model_config: dict                = field(default_factory=dict)
   db_req_log_fieldnames: list       = field(default_factory=lambda: ['request_id', 'timestamp', 'user_id', 'movie_id', 'rating'])
   db_req_log_fieldtypes: list       = field(default_factory=lambda: ['uint32', 'int64', 'uint32', 'uint32', 'float'])
@@ -33,6 +32,9 @@ class ServerStates:
       return 0
     return self.cache_hit_counter / self.request_counter
 
+  def __repr__(self):
+    return "total:{}\nhit:{}\nmiss:{}\n".format(self.request_counter, self.cache_hit_counter, self.cache_miss_counter)
+
 
 class ServerBuffers:
   def __init__(self):
@@ -48,17 +50,18 @@ class Server(Node):
     self.cfg: ServerConfig = ServerConfig()
     self._server_states: ServerStates = ServerStates()
     self._server_states_lock: threading.RLock = threading.RLock()
+
     self._job_queue: queue.Queue = job_queue
-    self._buffers: ServerBuffers = None
-    self._cache: Cache = None
+    self._worker: t.Callable = None
     self._event_manager: EventManager = None
+
+    self._timer: t.Callable = time.time
+    self._buffers: ServerBuffers = None
     self._database: ABCPseudoDatabase = None
     self._request_log_database = None
     self._request_status_log_database = None
-    self._timer: t.Callable = time.time
-    self._worker: t.Callable = None
-    self._thread: threading.Thread = None
-    self._model: ABCRecSysModel = None
+    self._cache: Cache = None
+    self._recsys_runner = None
 
   @property
   def states(self):
@@ -98,17 +101,11 @@ class Server(Node):
     return self._timer
 
   @property
-  def model(self):
-    return self._model
+  def recsys_runner(self):
+    return self._recsys_runner
 
   def has_database(self):
     return not self._database is None
-
-  def set_jog_queue(self, job_queue):
-    self._job_queue = job_queue
-
-  def set_thread(self, thread):
-    self._thread = thread
 
   def set_timer(self, timer):
     self._timer = timer
@@ -116,10 +113,10 @@ class Server(Node):
   def set_database(self, database: ABCPseudoDatabase):
     self._database = database
 
-  def set_model(self, model: ABCRecSysModel):
-    self._model = model
+  def set_recsys_runner(self, model: AbstractRecommender):
+    self._recsys_runner = model
 
-  def setup(self):
+  def setup(self, queue):
     self._buffers = ServerBuffers()
     self._request_log_database = TabularPDB(
       f'{self.name}',
@@ -139,19 +136,7 @@ class Server(Node):
       maxage=self.cfg.cache_maxage,
       timer=self._timer,
     )
-    self._job_queue = queue.Queue(
-      maxsize=self.cfg.job_queue_maxsize
-    )
     self._event_manager = EventManager(
       event_target=self,
-      job_queue=self._job_queue
+      job_queue=queue
     )
-    self._worker = new_event_thread_worker(self._job_queue)
-    self._thread = threading.Thread(target=self._worker, daemon=True)
-
-
-  def run_thread(self):
-    self._thread.start()
-
-  def block_until_finished(self):
-    self._job_queue.join()

@@ -3,11 +3,9 @@ import typing as t
 from collections import OrderedDict, namedtuple
 from collections.abc import Mapping
 from threading import RLock
-from src.trace import trace_fn
 from src.logger_helper import spawn_logger, init_default_logger
 
-# _logger = spawn_logger(__name__, f'log/{__name__}.log')
-_logger = init_default_logger()
+logger = spawn_logger(__name__, f'log/{__name__}.log')
 
 T_TTL = t.Union[int, float]
 T_SIZE = int

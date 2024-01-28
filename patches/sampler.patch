@@ -1,7 +1,40 @@
-91c91,94
+2a3,8
+> # ======= PATCH NOTE =======
+> # ========= GLOBAL =========
+> # override class config ref into
+> # weakref form from parent class
+> # ===== PATCH NOTE END =====
+> 
+4a11
+>         self.wref_config = config
+8c15,21
+<         self.ur = config['train_ur']
+---
+>         
+>         # ======= PATCH NOTE =======
+>         # defer item retrieval
+>         # self.ur = config['train_ur']
+>         self.ur = None
+>         self._get_ur = lambda: self.wref_config['train_ur']
+>         # ===== PATCH NOTE END =====
+62a76,81
+>         # ======= PATCH NOTE =======
+>         # retrieve deferred item
+>         if self.ur is None:
+>             self.ur = self._get_ur()
+>         # ===== PATCH NOTE END =====
+> 
+91c110,113
 <         self.df['neg_set'] = self.df[self.uid_name].agg(lambda u: js[u])
 ---
 >         # ======= PATCH NOTE =======
 >         # fix: deprecated method: pandas df agg -> transform
 >         self.df['neg_set'] = self.df[self.uid_name].transform(lambda u: js[u])
+>         # ===== PATCH NOTE END =====
+134a157,162
+> 
+>         # ======= PATCH NOTE =======
+>         # retrieve deferred item
+>         if self.ur is None:
+>             self.ur = self._get_ur()
 >         # ===== PATCH NOTE END =====

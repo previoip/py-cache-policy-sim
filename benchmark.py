@@ -35,16 +35,16 @@ if __name__ == '__main__':
   err_fo = open('debug_errors_1.txt', 'w')
 
   for algo_name in [
-    RECSYS_MODEL_ENUM.item2vec,
-    RECSYS_MODEL_ENUM.itemknn,
-    RECSYS_MODEL_ENUM.lightgcn,
-    RECSYS_MODEL_ENUM.mf,
-    RECSYS_MODEL_ENUM.mostpop,
-    RECSYS_MODEL_ENUM.multi_vae,
-    RECSYS_MODEL_ENUM.nfm,
-    RECSYS_MODEL_ENUM.fm,
-    RECSYS_MODEL_ENUM.neumf,
-    RECSYS_MODEL_ENUM.ngcf,
+    # RECSYS_MODEL_ENUM.item2vec,
+    # RECSYS_MODEL_ENUM.itemknn,
+    # RECSYS_MODEL_ENUM.lightgcn,
+    # RECSYS_MODEL_ENUM.mf,
+    # RECSYS_MODEL_ENUM.mostpop,
+    # RECSYS_MODEL_ENUM.multi_vae,
+    # RECSYS_MODEL_ENUM.nfm,
+    # RECSYS_MODEL_ENUM.fm,
+    # RECSYS_MODEL_ENUM.neumf,
+    # RECSYS_MODEL_ENUM.ngcf,
     RECSYS_MODEL_ENUM.slim
   ]:
     daisy_config = RecsysFL.init_daisy_config(data_loder=data_loader, algo_name=algo_name)
@@ -52,9 +52,17 @@ if __name__ == '__main__':
     try:
       runner = RecsysFL.new_recsys_runner(daisy_config)
       train_set, test_set, test_ur, train_ur = runner.split(data_loader.df_ratings)
-      runner.train(train_set)
-      print(runner.model.predict(1, 1))
-      print(runner.model.full_rank(1))
+      print(len(train_ur))
+      print(len(test_ur))
+
+      print(len(test_ur) + len(train_ur))
+
+      print(len(train_set))
+      print(len(test_set))
+      
+      # runner.train(train_set)
+      # print(runner.model.predict(1, 1))
+      # print(runner.model.full_rank(1))
     
     except Exception:
       err_fo.writelines([algo_name, '\n', traceback.format_exc(),'\n\n'])

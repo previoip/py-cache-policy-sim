@@ -18,11 +18,12 @@ class config:
 
   global_rand_seed      = 1337
   global_mode           = SIM_MODE_ENUM.cache_aside
-  global_cutoff         = -1
+  global_cutoff         = 10
 
   recsys_name           = None
   recsys_ftopk          = 0.75
   recsys_round          = 10
+  recsys_epochs         = 10
 
   path_log_dir          = './log'
   path_fmt_log_req      = 'logreq_{}.csv'
@@ -53,7 +54,8 @@ def build_parser(namespace: config):
   parser.add_argument('--cutoff', type=int, dest='global_cutoff', default=namespace.global_cutoff)
   parser.add_argument('--mode', type=str, dest='global_mode', default=namespace.global_mode, choices=strvars(SIM_MODE_ENUM).values())
   parser.add_argument('--model', type=str, dest='recsys_name', default=namespace.recsys_name, choices=strvars(RECSYS_MODEL_ENUM).values())
-  parser.add_argument('--model-train-rounds', type=int, dest='recsys_round', default=namespace.recsys_round)
+  parser.add_argument('--rounds', type=int, dest='recsys_round', default=namespace.recsys_round)
+  parser.add_argument('--epochs', type=int, dest='recsys_epochs', default=namespace.recsys_epochs)
   parser.add_argument('--fl-edges-count', type=int, dest='netw_num_edge', default=namespace.netw_num_edge)
   parser.add_argument('--fl-edges-alloc', type=float, dest='netw_es_alloc', default=namespace.netw_es_alloc)
   parser.add_argument('--fl-base-alloc', type=float, dest='netw_bs_alloc', default=namespace.netw_bs_alloc)

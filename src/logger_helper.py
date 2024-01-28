@@ -13,7 +13,7 @@ def set_fmt(logger: logging.Logger):
     isinstance(handler, logging.FileHandler):
       handler.setFormatter(__LOG_FMT)
 
-def spawn_logger(name, log_path=None, level=logging.DEBUG) -> logging.Logger:
+def spawn_logger(name, log_path=None, level=logging.DEBUG, as_fstream=False) -> logging.Logger:
   logger = logging.getLogger(name)
   logger.setLevel(level)
 
@@ -22,13 +22,25 @@ def spawn_logger(name, log_path=None, level=logging.DEBUG) -> logging.Logger:
     if not os.path.exists(dirname):
       os.makedirs(dirname)
   
-  if not logger.hasHandlers():
+  if as_fstream:
+    for handler in logger.handlers:
+      logger.removeHandler(handler)
+    ch = logging.FileHandler(log_path)
+    logger.addHandler(ch)
+
+  elif not logger.hasHandlers():
+    print('logger does not have handlers')
     if log_path is None:
       ch = logging.StreamHandler()
     else:
       ch = logging.FileHandler(log_path)
     logger.addHandler(ch)
-    set_fmt(logger)
+
+  for handler in logger.handlers:
+    print('logger handlers:', handler)
+
+  set_fmt(logger)
+
   return logger
 
 def init_default_logger() -> logging.Logger:

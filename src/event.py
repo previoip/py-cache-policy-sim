@@ -7,8 +7,11 @@ from warnings import warn
 from threading import RLock, Event as ThreadingEvent
 from functools import wraps
 from src import pseudo_server
+from src.logger_helper import spawn_logger
 
 event_thread_worker_sleep_controller = ThreadingEvent()
+event_trace = spawn_logger('eventtrace', log_path='./log/eventtrace.txt', as_fstream=True)
+
 
 class EventContext(t.NamedTuple):
   event_type: str
@@ -19,7 +22,7 @@ def new_event_thread_worker(queue: queue.Queue) -> t.Callable:
   def worker():
     while True:
       listener, context, event_param = queue.get()
-
+      # event_trace.debug('{}: {}'.format(context.event_type, context.event_target))
       try:
         errno = listener(context, event_param=event_param)
         if errno != 0:

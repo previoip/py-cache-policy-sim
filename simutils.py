@@ -39,7 +39,7 @@ def iter_requests(request_df, max_n=-1) -> t.Generator[RequestRecord, None, None
 
 def prepare_item_df(data_loader) -> pd.DataFrame:
   item_key = data_loader.iid
-  df_items = data_loader.df_items[[item_key]].copy()
+  df_items = data_loader.df_movies[[item_key]].copy()
   df_items[[item_key]] = df_items[[item_key]].astype('int')
   df_items['sizeof'] = 1
   df_items.set_index(item_key, drop=False, inplace=True)

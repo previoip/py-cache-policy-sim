@@ -3,6 +3,12 @@ from src.event import Event, EventContext, EventManager
 from src.pseudo_server import Server
 from src.cache import T_SIZE
 
+class ItemStatus:
+  cache_hit = 'cache_hit'
+  cache_miss = 'cache_miss'
+  db_hit = 'cache_hit'
+  db_miss = 'cache_miss'
+
 class EventParamContentRequest(t.NamedTuple):
   request_id: int
   client: Server
@@ -45,20 +51,20 @@ def handle_request(ctx: EventContext, event_param):
   if server.cache.has(event_param.item_id):
     server.cache.move_to_end(event_param.item_id)
     server.event_manager.trigger_event('OnCacheHit', 
-      event_param=EventParamContentRequestStatus(*event_param, 'cache_hit')
+      event_param=EventParamContentRequestStatus(*event_param, ItemStatus.cache_hit)
     )
   else:
     server.event_manager.trigger_event('OnCacheMissed', 
-      event_param=EventParamContentRequestStatus(*event_param, 'cache_missed')
+      event_param=EventParamContentRequestStatus(*event_param, ItemStatus.cache_miss)
     )
     if server.has_database():
       if server.database.has(event_param.item_id):
         server.event_manager.trigger_event('OnDatabaseHit', 
-          event_param=EventParamContentRequestStatus(*event_param, 'db_hit')
+          event_param=EventParamContentRequestStatus(*event_param, ItemStatus.db_hit)
         )
       else:
         server.event_manager.trigger_event('OnDatabaseMissed', 
-          event_param=EventParamContentRequestStatus(*event_param, 'db_missed')
+          event_param=EventParamContentRequestStatus(*event_param, ItemStatus.db_miss)
         )
 
     elif not server.is_root():
@@ -76,7 +82,7 @@ event_on_content_request.add_listener(handle_request)
 # ======================================================
 
 def handle_cache_content(ctx: EventContext, event_param): 
-  ctx.event_target.cache.add(event_param.item_id, None, 1)
+  ctx.event_target.cache.add(event_param.item_id, event_param.rating, event_param.item_size)
   return 0
 
 subroutine_cache.add_listener(handle_cache_content)
@@ -128,9 +134,9 @@ event_on_cache_missed.add_listener(handle_log_request_status)
 # ======================================================
 
 def handle_incr_states(ctx: EventContext, event_param):
-  if event_param.status == 'cache_hit':
+  if event_param.status == ItemStatus.cache_hit:
     ctx.event_target.states.cache_hit_counter += 1
-  elif event_param.status == 'cache_miss':
+  elif event_param.status == ItemStatus.cache_miss:
     ctx.event_target.states.cache_miss_counter += 1
   return 0
 
